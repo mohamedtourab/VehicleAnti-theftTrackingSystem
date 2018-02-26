@@ -25,12 +25,12 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
 
     {
 		//set portA as an altirnative function
-        PORT_GPIOA, // the choosen port
-        PIN_MASK_10, // sellect the pin number of the port (10)
-        MODE_ALTERNATIVE, //set the mode to alternative function
-        DEFAULT, //set the output type to the defalt value 
-        DEFAULT, //set the output speed to the defalt value 
-        DEFAULT  //set the pullup pulldown to the defalt value 
+        PORT_GPIOB, // the choosen port
+        PIN_MASK_6, // sellect the pin number of the port (10)
+        AF_I2C1, //set the mode to alternative function
+        OTYPE_OPENDRAIN, //set the output type to the defalt value 
+        OSPEED_LOW, //set the output speed to the defalt value 
+        PUPD_NOPUPD  //set the pullup pulldown to the defalt value 
     },
 
     {	
@@ -53,4 +53,21 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
         PUPD_PULLDOWN  //set the pullup pulldown to pulldown
     }
     ******************************************************************************************/
+	{
+        PORT_GPIOB,
+        PIN_MASK_6,
+        MODE_ALTERNATIVE,
+        OTYPE_OPENDRAIN, 
+        OSPEED_LOW, 
+        PUPD_NOPUPD  
+  },
+	{
+        PORT_GPIOB,
+        PIN_MASK_7,
+        MODE_ALTERNATIVE,
+        OTYPE_OPENDRAIN, 
+        OSPEED_LOW, 
+        PUPD_NOPUPD  
+    }
 };
+

@@ -12,14 +12,14 @@
 #include "GPIO.h"
 
 // number of available ports 
-#define NUMBER_OF_PORTS 9U 
+#define NUMBER_OF_PORTS     9U 
 
 /*************************************************************************************
-**********                             GPIO Memory Map                                 **********
+**********                      GPIO Memory Map                                 ******
 *************************************************************************************/
 
 /**********************************GPIO******************************************/
-#define GPIO_BASE_ADD 0x40020000U
+#define GPIO_BASE_ADD       0x40020000U
 /******************************GPIOx offsets*************************************/
 #define GPIOA_OFFSET        0x0000U
 #define GPIOB_OFFSET        0x0400U
@@ -50,20 +50,20 @@
 //address for the GPIOI 
 #define GPIOI_BASE_ADD ((uint32_t)(GPIO_BASE_ADD + GPIOI_OFFSET))
 /******************************GPIO registers offsets****************************/
-#define GPIO_MODER_OFFSET        0x00U
-#define GPIO_OTYPER_OFFSET        0x04U
-#define GPIO_OSPEEDR_OFFSET        0x08U
-#define GPIO_PUPDR_OFFSET        0x0CU
-#define GPIO_IDR_OFFSET         0x10U
-#define GPIO_ODR_OFFSET                0x14U
-#define GPIO_BSRR_OFFSET        0x18U
-#define GPIO_LCKR_OFFSET        0x1CU
-#define GPIO_AFRL_OFFSET        0x20U
-#define GPIO_AFRH_OFFSET        0x24U
+#define GPIO_MODER_OFFSET           0x00U
+#define GPIO_OTYPER_OFFSET          0x04U
+#define GPIO_OSPEEDR_OFFSET         0x08U
+#define GPIO_PUPDR_OFFSET           0x0CU
+#define GPIO_IDR_OFFSET             0x10U
+#define GPIO_ODR_OFFSET             0x14U
+#define GPIO_BSRR_OFFSET            0x18U
+#define GPIO_LCKR_OFFSET            0x1CU
+#define GPIO_AFRL_OFFSET            0x20U
+#define GPIO_AFRH_OFFSET            0x24U
 
 
 /***********************************************************************************
-**********                                                Defined data types                                                        ********
+**********						Defined data types							********
 ***********************************************************************************/
 
 /*define a datatype that is volatile (to privent compiler optimization)
@@ -72,7 +72,7 @@
 typedef volatile uint32_t* const GPIO_RegAddType;
 
 /***********************************************************************************
-**********                                                Declare Globals                                                                ********
+**********                      Declare Globals                             ********
 ***********************************************************************************/
 /*a static variable to hold the state if the GPIO groups
         1 => initialized
@@ -94,7 +94,7 @@ static const uint32_t GPIOx_BaseAddress[NUMBER_OF_PORTS] =
         GPIOI_BASE_ADD
 };
 /***********************************************************************************
-**********                        Macro like function to control the GPIO                                        ********
+**********              Macro like function to control the GPIO             ********
 ***********************************************************************************/
  
 //macro like function to generate the addres of the used register in the gpio port
@@ -134,7 +134,7 @@ static const uint32_t GPIOx_BaseAddress[NUMBER_OF_PORTS] =
 
 
 /***********************************************************************************
-**********                                                GPIO functions' bodies                                                ********
+**********                      GPIO functions' bodies                      ********
 ***********************************************************************************/
 
 /*
