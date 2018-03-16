@@ -13,7 +13,7 @@ const I2C_ConfigType I2C_ConfigParam[I2C_PERIPHERAL_NUMBER]=
 	{
 		1,															/*Peripheral ID*/
 		100000,													/*Frequency SCL=100KHz*/
-		PERIPHERAL_CLOCK_5MHz,					/*Peripheral Frequency*/
+		PERIPHERAL_CLOCK_8MHz,					/*Peripheral Frequency*/
 		PERIPHERAL_ENABLE,							/*enable the peripherla*/
 		STANDARD_MODE,                  /*choose the standard mode*/
 		I2C_MODE,                       /*choose I2C mode*/

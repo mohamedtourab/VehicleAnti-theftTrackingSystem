@@ -68,6 +68,42 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
         OTYPE_OPENDRAIN, 
         OSPEED_LOW, 
         PUPD_NOPUPD  
+    },
+    {	
+    	//set portD as an output 
+        PORT_GPIOD, // the choosen port
+        PIN_MASK_12,// sellect the pin number of the port (12)
+        MODE_OUTPUT, //set the mode output
+        DEFAULT, //set the output type to pushpull 
+        DEFAULT, //set the output speed to low speed 
+        DEFAULT //set the pullup pulldown to no pulldown/pulldown
+    },
+    {	
+    	//set portD as an output 
+        PORT_GPIOD, // the choosen port
+        PIN_MASK_13,// sellect the pin number of the port (12)
+        MODE_OUTPUT, //set the mode output
+        DEFAULT, //set the output type to pushpull 
+        DEFAULT, //set the output speed to low speed 
+        DEFAULT //set the pullup pulldown to no pulldown/pulldown
+    },
+    {	
+    	//set portD as an output 
+        PORT_GPIOD, // the choosen port
+        PIN_MASK_14,// sellect the pin number of the port (12)
+        MODE_OUTPUT, //set the mode output
+        DEFAULT, //set the output type to pushpull 
+        DEFAULT, //set the output speed to low speed 
+        DEFAULT //set the pullup pulldown to no pulldown/pulldown
+    },
+		{	
+    	//set portD as an output 
+        PORT_GPIOD, // the choosen port
+        PIN_MASK_15,// sellect the pin number of the port (12)
+        MODE_OUTPUT, //set the mode output
+        DEFAULT, //set the output type to pushpull 
+        DEFAULT, //set the output speed to low speed 
+        DEFAULT //set the pullup pulldown to no pulldown/pulldown
     }
 };
 

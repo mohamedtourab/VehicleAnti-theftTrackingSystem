@@ -80,7 +80,10 @@ typedef volatile uint32_t* const I2C_RegisterAddressType;
 																													 *
 									BIT POSITIONS						 								 *
 																													 *
-***********************************************************/													
+***********************************************************/		
+#define I2C_SR1_BERR_POS                  					      (8U)
+#define I2C_SR1_ARLO_POS                  					      (9U)
+#define I2C_SR1_AF_POS                    					      (10U)
 #define I2C_SR1_BTF_POS          												  (2U)                                         
 #define I2C_SR1_ADDR_POS 												          (1U)                                        
 #define I2C_SR1_RXNE_POS         												  (6U)                                         
@@ -225,6 +228,7 @@ I2C_CheckType I2C_PlaceData(uint8_t Data);
 I2C_CheckType I2C_SetSlaveAddressAndGetData(uint8_t SlaveAddress,uint8_t *Data);
 uint16_t I2C_SR1_Read(void);
 uint16_t I2C_SR2_Read(void);
+I2C_CheckType I2C_ErrorCheck(void);
 
 
 

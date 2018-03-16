@@ -13,18 +13,26 @@
 
 typedef enum
 {
-	I2C_IDLE,
+	I2C_ERROR_CHECK,
 	I2C_GENERATE_START,
 	I2C_SEND_SLAVE_ADDRESS,
 	I2C_SEND_LOCATION_ADDRESS,
 	I2C_SEND_DATA,
 	I2C_REPEATED_START,
 	I2C_SET_SLAVE_ADDRESS_AND_GET_DATA,
-	I2C_GENERATE_STOP
+	I2C_GENERATE_STOP,
+	I2C_WRITE_DONE,
+	I2C_READ_DONE
 }States;
 
+typedef struct{
+	States CurrentState;
+	States OldState;
+}ReturnStruct;
 
-States I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t DataWrite);
-States I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *DataRead);
+
+
+ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t DataWrite);
+ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *DataRead);
 
 #endif /*I2C_MANAGER_H*/

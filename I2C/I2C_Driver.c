@@ -1,7 +1,8 @@
 /*
  *
  *        Authors: Wessam Adel and Mohamed Mamdouh
- *        Date: 18/12/2017
+ *        Date: 18/2/2018
+ *        Last Edited : 16/3/2018
  *        Microcontroller: STM32F407VG
  *        
  *        Description: This file contains the implementations of initialization of
@@ -32,17 +33,21 @@ I2C_CheckType I2C_Init(void)
                         (ConfigPtr->I2C_FrequencyOf_SCL<=MAX_SCL_FREQUENCY_FM && ConfigPtr->I2C_SpeedMode))                                        
                 )
                 {
-                        /*Initialize the GPIO and set its mode to I2C alternative mode*/
-                        GPIO_I2C_Init();
                         
-                        /*SET PERIPHERAL FREQUENCY*/
+                        I2C_RCC_APB1EN |= (((uint32_t)1)<<RCC_APB1ENR_I2CEN_POS(ConfigPtr->I2C_Peripheral_ID));
+												I2C_CR1(ConfigPtr->I2C_Peripheral_ID)         &=~ (((uint16_t)ConfigPtr->I2C_PeripheralEnable)<<I2C_CR1_PE_POS);
+									
+												GPIO_SetAlternFuntion(0,AF_I2C1);
+                        GPIO_SetAlternFuntion(1,AF_I2C1);
+									
+												/*SET PERIPHERAL FREQUENCY*/
                         I2C_CR2(ConfigPtr->I2C_Peripheral_ID)         |= ((uint16_t)ConfigPtr->I2C_PeripheralFrequency);
                         /*SET SPEED MODE IN CCR*/        
                         I2C_CCR(ConfigPtr->I2C_Peripheral_ID)         |= ((ConfigPtr->I2C_SpeedMode)<< I2C_CCR_FS_POS);
                         /*SET VALUE OF CCR IN CRR REGISTER*/        
-                        I2C_CCR(ConfigPtr->I2C_Peripheral_ID)         |= (((ConfigPtr->I2C_PeripheralFrequency)*1000000)/(2*(ConfigPtr->I2C_FrequencyOf_SCL)));
+                        I2C_CCR(ConfigPtr->I2C_Peripheral_ID)         |= 0x28;//(((ConfigPtr->I2C_PeripheralFrequency)*1000000)/((ConfigPtr->I2C_FrequencyOf_SCL)));
                         /*COMPUTE AND ASSIGN MAXIMUM RISE TIME*/
-                        I2C_TRISE(ConfigPtr->I2C_Peripheral_ID)       |= 0x02;
+                        I2C_TRISE(ConfigPtr->I2C_Peripheral_ID)       |= 0x09;
                         /*Enable/Disable Peripheral*/
                         I2C_CR1(ConfigPtr->I2C_Peripheral_ID)         |= (((uint16_t)ConfigPtr->I2C_PeripheralEnable)<<I2C_CR1_PE_POS);
                         /*Enable/Disable Acknowledge*/        
@@ -229,34 +234,19 @@ uint16_t I2C_SR2_Read(void)
         return (I2C_SR2(ConfigPtr->I2C_Peripheral_ID));
 }
 
-void I2C_Delay(void)
+I2C_CheckType I2C_ErrorCheck(void)
 {
-	volatile uint16_t DelayCounter = 0;
-	for(DelayCounter=0;DelayCounter<I2C_DELAY_PARAMETER;DelayCounter++);
-}
-
-GPIO_CheckType GPIO_I2C_Init()
-{
-        volatile const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[0];
-        GPIO_CheckType RetVal;
-        RetVal = GPIO_Init();
-        /*ENABLE CLOCK GATING FOR I2C(ConfigPtr->I2C_Peripheral_ID) for example I2C1is equivalent to I2C(1)*/
-        I2C_RCC_APB1EN |= (((uint32_t)1)<<RCC_APB1ENR_I2CEN_POS(ConfigPtr->I2C_Peripheral_ID));
-        if(RetVal == GPIO_OK)
+        I2C_CheckType RetVal;
+        const I2C_ConfigType* ConfigPtr;
+        ConfigPtr = &I2C_ConfigParam[0];
+        if((I2C_SR1(ConfigPtr->I2C_Peripheral_ID))&((1<<I2C_SR1_AF_POS)|(1<<I2C_SR1_ARLO_POS)|(1<<I2C_SR1_BERR_POS)))
         {
-                RetVal = GPIO_SetAlternFuntion(0,AF_I2C1);
-                if(RetVal == GPIO_OK)
-                {
-                        RetVal = GPIO_SetAlternFuntion(1,AF_I2C1);
-                }
-                else
-                {
-                        RetVal = GPIO_NOK;
-                }
+                (I2C_SR1(ConfigPtr->I2C_Peripheral_ID)) &=~ ((uint32_t)((1<<I2C_SR1_AF_POS)|(1<<I2C_SR1_ARLO_POS)|(1<<I2C_SR1_BERR_POS)));
+                RetVal = I2C_NOK;
         }
         else
         {
-                RetVal = GPIO_NOK;
+                RetVal = I2C_OK;
         }
         return RetVal;
 }
