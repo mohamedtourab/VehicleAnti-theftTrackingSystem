@@ -21,7 +21,7 @@ int main(void)
         {
                 ReadReturn = I2C_Read(0xA0,0x07,&DataOutput);
         }while(ReadReturn.CurrentState != I2C_READ_DONE);
-				if(DataOutput==0xA1)
+				if(DataOutput==0x52)
 				{
 					GPIO_Write(4,1);//Red
 				}
