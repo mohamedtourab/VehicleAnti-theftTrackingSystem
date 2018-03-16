@@ -21,7 +21,7 @@
  *                                                                                                                       *         
  *************************************************************************************************************************   
  */
-ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t DataWrite)
+ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t DataWrite, uint8_t Peripheral_ID)
 {
       //  static States I2C_WriteStates = I2C_GENERATE_START;
       //  static States I2C_OldState;
@@ -31,7 +31,7 @@ ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t Data
         switch(ReturnValue.CurrentState)
         {
                 case I2C_ERROR_CHECK:
-                        if(I2C_ErrorCheck()==I2C_OK)
+                        if(I2C_ErrorCheck(Peripheral_ID)==I2C_OK)
                         {
                                 
                                 ReturnValue.CurrentState = ReturnValue.OldState;
@@ -44,7 +44,7 @@ ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t Data
                         break;
                         
                 case I2C_GENERATE_START:
-                        if(I2C_GenerateStart()==I2C_OK)
+                        if(I2C_GenerateStart(Peripheral_ID)==I2C_OK)
                         {
 
                                 ReturnValue.CurrentState = I2C_SEND_SLAVE_ADDRESS;
@@ -58,7 +58,7 @@ ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t Data
                         break;
 
                 case I2C_SEND_SLAVE_ADDRESS:
-                        if(I2C_SetSlaveAddres(SlaveAddress,WRITE)==I2C_OK)
+                        if(I2C_SetSlaveAddres(SlaveAddress,WRITE,Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_SEND_LOCATION_ADDRESS;
                         }
@@ -72,7 +72,7 @@ ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t Data
                         break;
 
                 case I2C_SEND_LOCATION_ADDRESS:
-                        if(I2C_SetLocationAddress(LocationAddress)==I2C_OK)
+                        if(I2C_SetLocationAddress(LocationAddress,Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_SEND_DATA;
                         }
@@ -84,7 +84,7 @@ ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t Data
                         break;
 
                 case I2C_SEND_DATA:
-                        if(I2C_PlaceData(DataWrite)==I2C_OK)
+                        if(I2C_PlaceData(DataWrite,Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_GENERATE_STOP;
                         }
@@ -96,7 +96,7 @@ ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t Data
                         break;
                                                         
                 case I2C_GENERATE_STOP:
-                        I2C_GenerateStop();
+                        I2C_GenerateStop(Peripheral_ID);
                         if(ReturnValue.OldState == I2C_ERROR_CHECK)
                         {
                                 ReturnValue.CurrentState = I2C_GENERATE_START;
@@ -122,7 +122,7 @@ ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t Data
  *************************************************************************************************************************   
  */
 
-ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *DataRead)
+ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *DataRead, uint8_t Peripheral_ID)
 {
         // static States I2C_ReadState = I2C_GENERATE_START;
         // static States I2C_OldState;
@@ -131,7 +131,7 @@ ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *Data
         switch(ReturnValue.CurrentState)
         {
                 case I2C_ERROR_CHECK:
-                        if(I2C_ErrorCheck()==I2C_OK)
+                        if(I2C_ErrorCheck(Peripheral_ID)==I2C_OK)
                         {
                                 
                                 ReturnValue.CurrentState = ReturnValue.OldState;
@@ -144,7 +144,7 @@ ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *Data
                         break;
 
                 case I2C_GENERATE_START:
-                        if(I2C_GenerateStart()==I2C_OK)
+                        if(I2C_GenerateStart(Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_SEND_SLAVE_ADDRESS;
                         }        
@@ -157,7 +157,7 @@ ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *Data
                         break;
 
                 case I2C_SEND_SLAVE_ADDRESS:
-                        if(I2C_SetSlaveAddres(SlaveAddress,WRITE)==I2C_OK)
+                        if(I2C_SetSlaveAddres(SlaveAddress,WRITE,Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_SEND_LOCATION_ADDRESS;
                         }
@@ -169,7 +169,7 @@ ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *Data
                         break;
 
                 case I2C_SEND_LOCATION_ADDRESS:
-                        if(I2C_SetLocationAddress(LocationAddress)==I2C_OK)
+                        if(I2C_SetLocationAddress(LocationAddress,Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_REPEATED_START;
                         }
@@ -181,7 +181,7 @@ ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *Data
                         break; 
 
                 case I2C_REPEATED_START:
-                        if(I2C_GenerateStart()==I2C_OK)
+                        if(I2C_GenerateStart(Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_SET_SLAVE_ADDRESS_AND_GET_DATA;
                         }        
@@ -193,7 +193,7 @@ ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *Data
                         break;
 
                 case I2C_SET_SLAVE_ADDRESS_AND_GET_DATA:
-                        if(I2C_SetSlaveAddressAndGetData(SlaveAddress,DataRead)==I2C_OK)
+                        if(I2C_SetSlaveAddressAndGetData(SlaveAddress,DataRead,Peripheral_ID)==I2C_OK)
                         {
                                 ReturnValue.CurrentState = I2C_GENERATE_STOP;
                         }
@@ -205,7 +205,7 @@ ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *Data
                         break;
                         
                 case I2C_GENERATE_STOP:
-                        I2C_GenerateStop();
+                        I2C_GenerateStop(Peripheral_ID);
                         if(ReturnValue.OldState == I2C_ERROR_CHECK)
                         {
                                 ReturnValue.CurrentState = I2C_GENERATE_START;

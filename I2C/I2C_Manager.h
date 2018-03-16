@@ -32,7 +32,7 @@ typedef struct{
 
 
 
-ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t DataWrite);
-ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *DataRead);
+ReturnStruct I2C_Write(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t DataWrite, uint8_t Peripheral_ID);
+ReturnStruct I2C_Read(uint8_t SlaveAddress,uint8_t LocationAddress,uint8_t *DataRead, uint8_t Peripheral_ID);
 
 #endif /*I2C_MANAGER_H*/

@@ -219,16 +219,16 @@ extern const I2C_ConfigType I2C_ConfigParam[I2C_PERIPHERAL_NUMBER];
 
 GPIO_CheckType	GPIO_I2C_Init(void);
 I2C_CheckType I2C_Init(void);
-I2C_CheckType I2C_GenerateStart(void);
-I2C_CheckType I2C_RepeatedStart(void);
-void I2C_GenerateStop(void);
-I2C_CheckType I2C_SetSlaveAddres(uint8_t SlaveAddress,uint8_t WriteOrRead);
-I2C_CheckType I2C_SetLocationAddress(uint8_t LocationAddress);
-I2C_CheckType I2C_PlaceData(uint8_t Data);
-I2C_CheckType I2C_SetSlaveAddressAndGetData(uint8_t SlaveAddress,uint8_t *Data);
-uint16_t I2C_SR1_Read(void);
-uint16_t I2C_SR2_Read(void);
-I2C_CheckType I2C_ErrorCheck(void);
+I2C_CheckType I2C_GenerateStart(uint8_t Peripheral_ID);
+//I2C_CheckType I2C_RepeatedStart(void);
+void I2C_GenerateStop(uint8_t Peripheral_ID);
+I2C_CheckType I2C_SetSlaveAddres(uint8_t SlaveAddress,uint8_t WriteOrRead, uint8_t Peripheral_ID);
+I2C_CheckType I2C_SetLocationAddress(uint8_t LocationAddress, uint8_t Peripheral_ID);
+I2C_CheckType I2C_PlaceData(uint8_t Data, uint8_t Peripheral_ID);
+I2C_CheckType I2C_SetSlaveAddressAndGetData(uint8_t SlaveAddress,uint8_t *Data, uint8_t Peripheral_ID);
+uint16_t I2C_SR1_Read(uint8_t Peripheral_ID);
+uint16_t I2C_SR2_Read(uint8_t Peripheral_ID);
+I2C_CheckType I2C_ErrorCheck(uint8_t Peripheral_ID);
 
 
 
