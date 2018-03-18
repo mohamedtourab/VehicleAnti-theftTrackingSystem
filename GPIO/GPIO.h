@@ -1,14 +1,14 @@
-/**********************************************************************************        
-*        File name: GPIO.h
-*        Auther : 
-                        -Abdelrhman Hosny
-                        -Amr Mohamed
-*        Date : 18/2/2018
-*        Discription :
-                        this file contains:
-                                -macros to access GPIO registers
-                                -prototype of the APIs of the GPIO 
-*        Target : STM32F407VG
+/**********************************************************************************	
+*	File name: GPIO.h
+*	Auther : 
+			-Abdelrhman Hosny
+			-Amr Mohamed
+*	Date : 18/2/2018
+*	Discription :
+			this file contains:
+				-macros to access GPIO registers
+				-prototype of the APIs of the GPIO 
+*	Target : STM32F407VG
 **********************************************************************************/
 
 #ifndef GPIO_H
@@ -19,179 +19,181 @@
 
 
 /*************************************************************************************
-**********                     Macros to access GPIO                            ******
+**********                     Macros to access GPIO                        **********
 *************************************************************************************/
 
-#define        DEFAULT                         0U
+#define	DEFAULT 			0U
 
 /*************************************************************************************
-**********                      Macros To SET GPIO PORT number                  ******
+**********				Macros To SET GPIO PORT number	                    **********
 *************************************************************************************/
-#define        PORT_GPIOA                        0U
-#define        PORT_GPIOB                        1U
-#define        PORT_GPIOC                        2U
-#define        PORT_GPIOD                        3U
-#define        PORT_GPIOE                        4U
-#define        PORT_GPIOF                        5U
-#define        PORT_GPIOG                        6U
-#define        PORT_GPIOH                        7U
-#define        PORT_GPIOI                        8U
+#define	PORT_GPIOA			0U
+#define	PORT_GPIOB			1U
+#define	PORT_GPIOC			2U
+#define	PORT_GPIOD			3U
+#define	PORT_GPIOE			4U
+#define	PORT_GPIOF			5U
+#define	PORT_GPIOG			6U
+#define	PORT_GPIOH			7U
+#define	PORT_GPIOI			8U
 
 /***********************************************************************************
-**********					Macros to mask the required pin     	            ****
+**********				Macros to mask the required pin						********
 ***********************************************************************************/
-#define        PIN_MASK_0                0U
-#define        PIN_MASK_1                1U
-#define        PIN_MASK_2                2U
-#define        PIN_MASK_3                3U
-#define        PIN_MASK_4                4U
-#define        PIN_MASK_5                5U
-#define        PIN_MASK_6                6U
-#define        PIN_MASK_7                7U
-#define        PIN_MASK_8                8U
-#define        PIN_MASK_9                9U
-#define        PIN_MASK_10				10U
-#define        PIN_MASK_11				11U
-#define        PIN_MASK_12				12U
-#define        PIN_MASK_13				13U
-#define        PIN_MASK_14				14U
-#define        PIN_MASK_15				15U
+#define	PIN_MASK_0		0x0001U
+#define	PIN_MASK_1		0x0002U
+#define	PIN_MASK_2		0x0004U
+#define	PIN_MASK_3		0x0008U
+#define	PIN_MASK_4		0x0010U
+#define	PIN_MASK_5		0x0020U
+#define	PIN_MASK_6		0x0040U
+#define	PIN_MASK_7		0x0080U
+#define	PIN_MASK_8		0x0100U
+#define	PIN_MASK_9		0x0200U
+#define	PIN_MASK_10		0x0400U
+#define	PIN_MASK_11		0x0800U
+#define	PIN_MASK_12		0x1000U
+#define	PIN_MASK_13		0x2000U
+#define	PIN_MASK_14		0x4000U
+#define	PIN_MASK_15		0x8000U
+#define	PIN_MASK_ALL	0xFFFFU
 
 
 /*************************************************************************************
-**********                      Macros To access GPIO mode register             ******
+**********				Macros To access GPIO mode register                 **********
 *************************************************************************************/
-#define        MODE_INPUT                         0U
-#define        MODE_OUTPUT                        1U
-#define        MODE_ALTERNATIVE                   2U
-#define        MODE_ANALOG                        3U
+#define	MODE_INPUT			0x00000000U
+#define	MODE_OUTPUT			0x55555555U
+#define	MODE_ALTERNATIVE	0xAAAAAAAAU
+#define	MODE_ANALOG			0xFFFFFFFFU
 
 /*************************************************************************************
-**********              Macros to access Output Type register                   ******
+**********			Macros to access Output Type register					**********
 *************************************************************************************/
-#define        OTYPE_PUSHPULL           0U
-#define        OTYPE_OPENDRAIN          1U
+#define	OTYPE_PUSHPULL		0U
+#define	OTYPE_OPENDRAIN		1U
 
 /*************************************************************************************
-**********              Macros to access Output speed register                  ******
+**********			Macros to access Output speed register					**********
 *************************************************************************************/
-#define         OSPEED_LOW              0U
-#define         OSPEED_MEDIUM           1U
-#define         OSPEED_HIGH             2U
-#define         OSPEED_VERYHIGH         3U
+#define	OSPEED_LOW			0x00000000U
+#define	OSPEED_MEDIUM		0x55555555U
+#define OSPEED_HIGH			0xAAAAAAAAU
+#define	OSPEED_VERYHIGH		0xFFFFFFFFU
 
 /************************************************************************************
-**********              Macros to access pull-up/pull-down register             *****
+**********			Macros to access pull-up/pull-down register				*********
 ************************************************************************************/
-#define        PUPD_NOPUPD              0U
-#define        PUPD_PULLUP              1U
-#define        PUPD_PULLDOWN            2U
+#define	PUPD_NOPUPD			0x00000000U
+#define	PUPD_PULLUP			0x55555555U
+#define	PUPD_PULLDOWN		0xAAAAAAAAU
 
 /************************************************************************************
-**********              Macros to access Alternative functions register         *****
+**********			Macros to access Alternative functions register			*********
 ************************************************************************************/
-#define        AF_SYSTEM                0U
+#define	AF_SYSTEM			0x00000000U
 
-#define        AF_TIM1                  1U
-#define        AF_TIM2                  1U
+#define	AF_TIM1				0x11111111U
+#define	AF_TIM2				0x11111111U
 
-#define        AF_TIM3                  2U
-#define        AF_TIM4                  2U
-#define        AF_TIM5                  2U
+#define	AF_TIM3				0x22222222U
+#define	AF_TIM4				0x22222222U
+#define	AF_TIM5				0x22222222U
 
-#define        AF_TIM8                  3U
-#define        AF_TIM9                  3U
-#define        AF_TIM10                 3U
-#define        AF_TIM11                 3U
+#define	AF_TIM8				0x33333333U
+#define	AF_TIM9				0x33333333U
+#define	AF_TIM10			0x33333333U
+#define	AF_TIM11			0x33333333U
 
-#define        AF_I2C1                  4U
-#define        AF_I2C2                  4U
-#define        AF_I2C3                  4U
+#define	AF_I2C1				0x44444444U
+#define	AF_I2C2				0x44444444U
+#define	AF_I2C3				0x44444444U
 
-#define        AF_SPI1                  5U
-#define        AF_SPI2                  5U
+#define	AF_SPI1				0x55555555U
+#define	AF_SPI2				0x55555555U
 
-#define        AF_SPI3                  6U
+#define	AF_SPI3				0x66666666U
 
-#define        AF_USART1                7U
-#define        AF_USART2                7U
-#define        AF_USART3                7U
+#define	AF_USART1			0x77777777U
+#define	AF_USART2			0x77777777U
+#define	AF_USART3			0x77777777U
 
-#define        AF_USART4                8U
-#define        AF_USART5                8U
-#define        AF_USART6                8U
+#define	AF_USART4			0x88888888U
+#define	AF_USART5			0x88888888U
+#define	AF_USART6			0x88888888U
 
-#define        AF_CAN1                  9U
-#define        AF_CAN2                  9U
-#define        AF_TIM12                 9U
-#define        AF_TIM13                 9U
-#define        AF_TIM14                 9U
+#define	AF_CAN1				0x99999999U
+#define	AF_CAN2				0x99999999U
+#define	AF_TIM12			0x99999999U
+#define	AF_TIM13			0x99999999U
+#define	AF_TIM14			0x99999999U
 
-#define        AF_OTG_FS                10U
-#define        AF_OTG_HS                10U
+#define	AF_OTG_FS			0xAAAAAAAAU
+#define	AF_OTG_HS			0xAAAAAAAAU
 
-#define        AF_ETH                   11U
+#define	AF_ETH 				0xBBBBBBBBU
 
-#define        AF_FSMC                  12U
-#define        AF_SDIO                  12U
-#define        AF_OTG_HS_C              12U
+#define	AF_FSMC				0xCCCCCCCCU
+#define	AF_SDIO				0xCCCCCCCCU
+#define	AF_OTG_HS_C			0xCCCCCCCCU
 
-#define        AF_DCMI                  13U
+#define	AF_DCMI				0xDDDDDDDDU
 
-#define        AF_AF14                  14U
+#define	AF_AF14				0xEEEEEEEEU
 
-#define        AF_EVENTOUT              15U
+#define	AF_EVENTOUT			0xFFFFFFFFU
 
-/*************************************************************************************
-**********                      Macros To SET Output Data                       ******
-*************************************************************************************/
-#define        LOW              0U
-#define        HIGH             1U
+/************************************************************************************
+**********						Macros to Write data 						*********
+************************************************************************************/
+#define LOW 		0U
+#define HIGH 		1U
+#define FULL_DATA 	2U
 
 /***********************************************************************************
-**********                      Defined data types                              ****
+**********						Defined data types							********
 ***********************************************************************************/
 
 //structure to be filled by the user to configure the GPIO
 typedef struct 
 {
-        //port and pin sellection
-        uint8_t Port;
-        uint8_t Pin;
+	//port and pin sellection
+	uint8_t Port;
+	uint16_t Pin;
 
-        //mode sellection
-        /*
-                Input           00
-                Output          01
-                Alt-Func        10
-                Analog          11
-        */
-        uint8_t Mode;
+	//mode sellection
+	/*
+		Input 		00
+		Output 		01
+		Alt-Func 	10
+		Analog 		11
+	*/
+	uint32_t Mode;
 
-        //set the output type
-        /*
-                PushPull        0
-                Open Drain      1        
-        */
-        uint8_t OutputType;
+	//set the output type
+	/*
+		PushPull		0
+		Open Drain 		1	
+	*/
+	uint16_t OutputType;
 
-        //set the output Speed
-        /*
-                Low             00
-                Medium          01
-                High            10
-                Very High       11
-        */
-        uint8_t OutputSpeed;
+	//set the output Speed
+	/*
+		Low 		00
+		Medium 		01
+		High	 	10
+		Very High	11
+	*/
+	uint32_t OutputSpeed;
 
-        //set the pull up and pull down
-        /*
-                NPUPD           00
-                PU              01
-                PD              10
-                Reservied       11
-        */
-        uint8_t PUPD;
+	//set the pull up and pull down
+	/*
+		NPUPD 		00
+		PU  		01
+		PD 		 	10
+		Reservied	11
+	*/
+	uint32_t PUPD;
 } GPIO_ConfigType;
 
 //--------------------------------------------------------------------------------
@@ -204,15 +206,16 @@ typedef enum {GPIO_OK =0, GPIO_NOK} GPIO_CheckType;
 //extern constant array of GPIO_ConfigType structure of the GPIO groups
 extern const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS];
 
+
 /***********************************************************************************
-**********                      Functions prototypes                            ****
+**********						Functions prototypes						********
 ***********************************************************************************/
 
 /*
  * This function used to initialize all the GPIO Groups in the configurations
  * Inputs:NONE
  * Output:
-         - an indication of the success of the function
+ 	- an indication of the success of the function
 */
 GPIO_CheckType GPIO_Init(void);
 
@@ -220,35 +223,36 @@ GPIO_CheckType GPIO_Init(void);
 /*
  * This function used to Digital Write data to a specific group
  * Inputs:
-         - GroupId                 : the index of the structure in the GPIO_ConfogParam array
-         - Data                   : the data to write to that specific group
+ 	- GroupId		 : the index of the structure in the GPIO_ConfogParam array
+ 	- Data  		 : the data to write to that specific group
+ 	- State 		 : set if pin is HIGH or LOW or Control ALL pins(FULL_DATA)
  * Output:
-         - an indication of the success of the function
+ 	- an indication of the success of the function
 */
-GPIO_CheckType GPIO_Write(uint8_t GroupId, uint8_t Data);
+GPIO_CheckType GPIO_Write(uint8_t GroupId, uint16_t Data, uint8_t State);
 
 
 /*
  * This function used to Digital read data from a specific group
  * Inputs:
-         - GroupId                 : the index of the structure in the GPIO_ConfogParam array
-         - DataPtr                   : a pointer to a variable to store the data read from that specific group
+ 	- GroupId		 : the index of the structure in the GPIO_ConfogParam array
+ 	- DataPtr  		 : a pointer to a variable to store the data read from that specific group
  * Output:
-         - an indication of the success of the function
+ 	- an indication of the success of the function
 */
 
-GPIO_CheckType GPIO_Read(uint8_t GroupId, uint8_t* DataPtr);
+GPIO_CheckType GPIO_Read(uint8_t GroupId, uint16_t* DataPtr);
 
 
 /*
  * This function used to select which peripheral will be connected to a GPIO pin
  * Inputs:
-         - GroupId                 : the index of the structure in the GPIO_ConfogParam array
-         - AlternFuncId   : the ID of the alternative function
+ 	- GroupId		 : the index of the structure in the GPIO_ConfogParam array
+ 	- AlternFuncId   : the ID of the alternative function
  * Output:
-         - an indication of the success of the function
+ 	- an indication of the success of the function
 */
-GPIO_CheckType GPIO_SetAlternFuntion(uint8_t GroupId, uint8_t AlternFuncId);
+GPIO_CheckType GPIO_SetAlternFuntion(uint8_t GroupId, uint32_t AlternFuncId);
 
 /*********************************************************************************/
 

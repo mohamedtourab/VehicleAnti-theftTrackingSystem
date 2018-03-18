@@ -1,17 +1,19 @@
 /**************************************************************************************
-*	File name: GPIO_Config.h
+*	File name: GSM_Config.h
 *Auther : edited by the user
-*	Date: 18/2/2018
+*	Date: 6/3/2018
 *	Description:
 *			This file contains:
-*			- A macro that containes the number of groups of the GPIO
+*			- A macro that containes the number of groups of the GSM modules
 *	Microcontroller: STM32F407VG
 ***************************************************************************************/ 
 
-#ifndef GPIO_CONFIG_H
-#define GPIO_CONFIG_H
+#ifndef GSM_CONFIG_H
+#define GSM_CONFIG_H
 
 /* A configuration to the number of GPIO groups*/
-#define GPIO_NUMBER_OF_GROUPS 3U
+#define GSM_NUMBER_OF_GROUPS 1U
+
+//--------------------------------------------------------------------
 
 #endif
