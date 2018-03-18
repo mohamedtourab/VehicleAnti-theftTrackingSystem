@@ -1,44 +1,8 @@
 
-#include "GPIO.h"
-#include "UART.h"
+#include "BT_Manager.h"
 //#include "stm32f407xx.h"
-int Bluetooth_Configure(void);
-
-static uint8_t TransmissionDone = 0;
-static uint8_t ReceptionDone = 0;
-//volatile uint8_t State = 0;
 
 
-typedef enum
-{
-    CHECK_TRANSMISSION_DONE = 0,
-    CHECK_RECEPTION_DONE = 1,
-    SET_COMMAND_MODE = 2,
-    SET_FACTORY_SETTINGS = 3,
-    SET_DEVICE_NAME = 4,
-    SET_SLAVE_MODE = 5,
-    SET_NO_AUTHENTICATION = 6,
-    SET_SCAN_TIME_SI = 7,
-    SET_SCAN_TIME_SJ = 8,
-    DISABLE_REMOTE_CONFIGURATION = 9,
-	EXIT_COMMAND_MODE=10,
-    REBOOT = 11,
-    CHECK_RECEIVED_DATA = 12
-}BT_State;
-
-
-
-
-
-void BluetoothTxDone(void)
-{
-    TransmissionDone++;
-}
-
-void BluetoothRxDone(void)
-{
-    ReceptionDone++;
-}
 
 
 void main (void)
@@ -46,177 +10,14 @@ void main (void)
     GPIO_Init();
     Delay_ms(100);
     UART_Init();
-    Delay_ms(100);
-    while(Bluetooth_Configure());
+    BT_Init();
+    Delay_ms(600);
 
-    //Delay_ms(1000);
+    while(BT_Configure() == BT_NOK);
+    GPIO_Write(0,1);
 }
 
 
-int Bluetooth_Configure(void)
-{
-    static BT_State State = SET_COMMAND_MODE;
-    static BT_State OldState = SET_COMMAND_MODE;
-    static unsigned char ReceivedArray[10] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
-    volatile int RetVal = 1;
-    
-    switch(State)
-    {
-        case SET_COMMAND_MODE:
-        {
-            UART_StartSilentTransmission("$$$",3,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-        case CHECK_TRANSMISSION_DONE:
-        {
-            if(TransmissionDone)
-            {
-
-				TransmissionDone = 0;
-                State = CHECK_RECEPTION_DONE;
-                UART_StartSilentReception(ReceivedArray,4,0);
-            }
-            else
-            {
-                UART_ManageOngoingOperation(0);
-            }
-            
-        }
-        break;
-        case CHECK_RECEPTION_DONE:
-        {
-            if(ReceptionDone)
-            {
-                State=CHECK_RECEIVED_DATA;
-                ReceptionDone=0;
-				if(OldState == EXIT_COMMAND_MODE)
-				{
-					GPIO_Write(2,1);
-				}
-            }
-            else
-            {
-                if(OldState == EXIT_COMMAND_MODE)
-				{
-					GPIO_Write(0,1);
-				}
-                UART_ManageOngoingOperation(0);
-            }
-
-        }
-        break;
-
-        case CHECK_RECEIVED_DATA:
-        {
-            if(OldState==SET_COMMAND_MODE && ReceivedArray[0]=='C' && ReceivedArray[1]=='M' && ReceivedArray[2]=='D')
-            {
-                State = SET_FACTORY_SETTINGS;
-            }
-            else if( (ReceivedArray[0]=='A' &&  ReceivedArray[1]=='O' && ReceivedArray[2]=='K') || (ReceivedArray[0]=='E' &&  ReceivedArray[1]=='N' && ReceivedArray[2]=='D'))
-            {
-                State = OldState + 1;
-            }
-            else if(ReceivedArray[0]=='E' &&  ReceivedArray[1]=='R' && ReceivedArray[2]=='R')
-            {
-                GPIO_Write(1,1);
-				State = REBOOT;
-            }
-        }
-        break;
-
-        case SET_FACTORY_SETTINGS:
-        {
-
-            
-			UART_StartSilentTransmission("SF,1\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-        
-        case SET_DEVICE_NAME:
-        {
-            
-            UART_StartSilentTransmission("SN,Authenticate-Device\r",23,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_SLAVE_MODE:
-        {
-            
-			UART_StartSilentTransmission("SM,0\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_NO_AUTHENTICATION:
-        {
-            
-			UART_StartSilentTransmission("SA,0\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_SCAN_TIME_SI:
-        {
-           
-			UART_StartSilentTransmission("SI,0800\r",8,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_SCAN_TIME_SJ:
-        {
-            UART_StartSilentTransmission("SJ,0800\r",8,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-        case DISABLE_REMOTE_CONFIGURATION:
-        {
-            UART_StartSilentTransmission("ST,0\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-		case EXIT_COMMAND_MODE:
-		{
-			
-			UART_StartSilentTransmission("---\r",4,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-		}
-        break;
-        case REBOOT:
-        {
-            
-            UART_StartSilentTransmission("R,1\r",4,0);
-            if(OldState != DISABLE_REMOTE_CONFIGURATION )
-            {
-                State = SET_COMMAND_MODE;
-                OldState = SET_COMMAND_MODE;
-            }
-            else
-            {
-                OldState = State;
-                RetVal = 0;
-            }
-            
-        }
-        break;
-        
-    }
-
-
-    return RetVal;
-}
 
 
 
