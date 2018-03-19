@@ -46,13 +46,9 @@ typedef struct
 			- UART_6*/
         uint32_t UartPerifID;
 
-        /*Tx Pin GPIO channel ID*/
-        /* the index of Tx pin GPIO configuration structure in GPIO_Cfg.c*/
-        uint8_t TxPortID;
-
-        /*Rx Pin GPIO ChannelId*/
-        /* the index of Rx pin GPIO configuration structure in GPIO_Cfg.c*/
-        uint8_t RxPortID;
+        /*Tx and Rx Pins GPIO channel ID*/
+        /* the index of Tx and Rx pins GPIO configuration structure in GPIO_Cfg.c*/
+        uint8_t GPIO_PortID;
 
         /*Channel BaudRate*/
         // BR9600 	==> 9600 	bps

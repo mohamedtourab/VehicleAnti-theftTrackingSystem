@@ -173,7 +173,7 @@ UART_ChkType UART_Init(void)
                    (CfgPtr->StopBits <=STOP_TWO))
                 {
                         //Set the alternative function of Tx and Rx pins
-                        GPIO_SetAlternFuntion(CfgPtr->TxPortID,UartChannelsAlternFun[CfgPtr->UartPerifID]);
+                        GPIO_SetAlternFuntion(CfgPtr->GPIO_PortID,UartChannelsAlternFun[CfgPtr->UartPerifID]);
 
                         // enable clock gating
                         // check the used UART on APB1 Bus or APB2 Bus
