@@ -1,7 +1,38 @@
+/*****************************************************************************************************
+*	File name: GPS.h
+*	Author: Moamen Ali & Moamen Ramadan
+*	Date: 18/3/2018
+*	Description:
+*		- GPS Functions to initialize the GPS and start to get the whole GPS reading
+*		  and then parse the GPS reading to get the Longitude and latitude. 
+*	Usage:
+*		- User define the configuration parameter in a GPS_ConfigType structure which are:
+*			. the index of the used UART in the UART_Cfg.c file.
+*			. The index of the used GPIO for Force in GPIO_Cfg.c file.
+*			. The Pin mask of the used pin for Force in GPIO_Cfg.c file
+*			. The index of the used GPIO for Reset pin on GPIO_Cfg.c file.
+*			. The Pin mask of the used pin for Force in GPIO_Cfg.c file.
+*			. pointer to function to be executed when finding the valid data of GPS.
+*			. pointer to function to be executed when GPS data is invalid or error ocuured.
+*		- User should call GPS_Init function to initialize all flags and states.
+*		- User call Start Read once when he need to start read GPS data.
+*		- GPS_ManageOngoingOperation function should be called periodically till-
+*		  it return GPS_Ok and execute the Found call back function defined-
+*		  in GPS_ConfigType structure.if the data of GPS is invalid data this function-
+*		  return GPS_NOk and execute the error call back function defined in GPS_ConfigType structure
+*		- User should define a variable from type location in which the GPS_Location will be stored when-
+*		  Passing its address to the function GetData after GPS_ManageOngoingOperation function return OK.
+*		- GPS_ReceptionCallBack function is the RxCallBack Function that should be defined-
+*		  in the UART configuration parameter
+******************************************************************************************************/
+
 #include "GPS.h"
 #include "UART.h"
+#include "Parse.h"
 #include "GPIO.h"
 
+
+// The required delay in the initialization sequence
 #define RequiredDelay	(100/CyclicTime)
 
 /*************************************************************************
@@ -41,6 +72,7 @@ static uint8_t GPS_Data[768];
 */
 void GPS_Init(void)
 {
+	uint8_t LoopIndex;
 	// initialize State to be GPS_UNINITIALIED
 	State = GPS_UNINIT;
 	// initialize Start reception flag to 0
@@ -48,7 +80,13 @@ void GPS_Init(void)
 	// initialize Reception flag
 	ReceptionDoneFlag = 0;
 	// initialze Parsed data structure
-	ParsedData = {{0},0,{0},0};
+	ParsedData.LatitudeDir = 0;
+	ParsedData.LongitudeDir = 0;
+	for (LoopIndex = 0; LoopIndex < 9; LoopIndex++)
+	{
+		ParsedData.Longitude[LoopIndex] = 0;
+		ParsedData.Latitude[LoopIndex] = 0;
+	}
 	// initialize counter
 	Counter = 0;
 }
@@ -89,12 +127,13 @@ void GetData(Location* Map)
 */
 GPS_CheckType GPS_ManagOnGoingOperation(void)
 {
-	GPS_CheckType RetVar;
-	GPS_Config* GPS_Ptr;
+	GPS_CheckType RetVar = GPS_OK;
+	const GPS_Config* GPS_Ptr;
 	Parse_CheckType ParseRet;
 	Parse_Cfg ParseParameter = {0,0,0,0,0};
 	uint8_t ParseData[6] = "GNRMC";
 	uint8_t StartIndex = 0, EndIndex = 0;
+	uint8_t LoopIndex;
 
 	// flags used to check if Longitude and latitude found or not
 	uint8_t LongitudeFlag = 0, LatitudeFlag = 0;
@@ -110,16 +149,16 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 			if (Counter == 0)
 			{
 				// write '1' on force pin
-				GPIO_Write((GPS_Ptr->GPIO_ChannelId),(GPS_Ptr->ForcePinMask),HIGH);
+				GPIO_Write((GPS_Ptr->Force_ChannelId),(GPS_Ptr->ForcePinMask),HIGH);
 				// write '0' on RST pin
-				GPIO_Write((GPS_Ptr->GPIO_ChannelId),(GPS_Ptr->RstPinMask),LOW);
+				GPIO_Write((GPS_Ptr->RST_ChannelId),(GPS_Ptr->RstPinMask),LOW);
 			}
 			else
 			{
 				if (Counter == (RequiredDelay))
 				{
 					// write '1' on RST pin
-					GPIO_Write((GPS_Ptr->GPIO_ChannelId),(GPS_Ptr->RstPinMask),HIGH);
+					GPIO_Write((GPS_Ptr->RST_ChannelId),(GPS_Ptr->RstPinMask),HIGH);
 					// change the state to be GPS_IDLE
 					State = GPS_IDLE;
 				}
@@ -147,7 +186,7 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 		// if Wait
 		case GPS_WAIT:
 		{
-			// check the ReceptionDoneFlag
+			// check the ReceptionDoneFlag which indicates that reception of 768 finished
 			// if '1'
 			if (ReceptionDoneFlag == 1)
 			{
@@ -164,37 +203,39 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 			// Search for "GNRMC" in the data we read fom GPS
 			ParseParameter.BufferPtr = GPS_Data;
 			ParseParameter.BufferLength = 768;
-			ParseParameter.DataPtr = ParsedData;
+			ParseParameter.DataPtr = ParseData;
 			ParseParameter.DataLength = 5;
-			ParseRet = Parse(&ParseParameter)
+			ParseRet = Parse(&ParseParameter);
 			// if found 
 			if (ParseRet == PARSE_OK)
 			{
 				// search for Data validity ",A,"
-				ParseParameter.BufferPtr = GPS_Data + (ParseParameter.Index) + 5;
-				ParsedData[0] = ',';
-				ParsedData[1] = 'A';
-				ParsedData[2] = ',';
-				ParseParameter.DataPtr = ParsedData;
+				ParseParameter.BufferPtr = GPS_Data + (ParseParameter.Index) + 5; // change the start of buffer to be searched after GNRMC
+				// change data we need to search about it
+				ParseData[0] = ',';
+				ParseData[1] = 'A';
+				ParseData[2] = ',';
+				ParseParameter.DataPtr = ParseData;
 				ParseParameter.DataLength = 3;
-				ParseRet = Parse(&ParseParameter)
+				ParseRet = Parse(&ParseParameter);
 				// if found 
 				if (ParseRet == PARSE_OK)
 				{
 					// mark the Longitude start index
 					StartIndex = ParseParameter.Index;
-					//search for Longitude direction ",N," or ",S,"
-					ParsedData[0] = ',';
-					ParsedData[1] = 'N';
-					ParsedData[2] = ',';
-					ParseParameter.DataPtr = ParsedData;
+					//search for Longitude direction ",N,"
+					ParseData[0] = ',';
+					ParseData[1] = 'N';
+					ParseData[2] = ',';
+					ParseParameter.DataPtr = ParseData;
 					ParseParameter.DataLength = 3;
-					ParseRet = Parse(&ParseParameter)
+					ParseRet = Parse(&ParseParameter);
 					// if found 
 					if (ParseRet == PARSE_OK)
 					{
 						// mark the end index of Longitude
 						EndIndex = ParseParameter.Index;
+						// fill data on the parseddata global variable
 						for (LoopIndex = 0; LoopIndex <=(EndIndex - StartIndex -4); LoopIndex++)
 						{
 							ParsedData.Longitude[LoopIndex] = ParseParameter.BufferPtr[StartIndex+LoopIndex+3];
@@ -202,23 +243,25 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 						ParsedData.LongitudeDir = ParseParameter.BufferPtr[EndIndex+1];
 						// Start of Latitude is the end of longitude
 						StartIndex = EndIndex;
+						// set the Longitude flag to be '1' to indicate that we get the valid longitude
 						LongitudeFlag = 1;
 					}
 					// else
 					else
 					{
-						//search for Longitude direction ",N," or ",S,"
-						ParsedData[0] = ',';
-						ParsedData[1] = 'S';
-						ParsedData[2] = ',';
-						ParseParameter.DataPtr = ParsedData;
+						//search for Longitude direction ",S,"
+						ParseData[0] = ',';
+						ParseData[1] = 'S';
+						ParseData[2] = ',';
+						ParseParameter.DataPtr = ParseData;
 						ParseParameter.DataLength = 3;
-						ParseRet = Parse(&ParseParameter)
+						ParseRet = Parse(&ParseParameter);
 						// if found 
 						if (ParseRet == PARSE_OK)
 						{
 							// mark the end index of Longitude
 							EndIndex = ParseParameter.Index;
+							// fill data on the parseddata global variable
 							for (LoopIndex = 0; LoopIndex <=(EndIndex - StartIndex -4); LoopIndex++)
 							{
 								ParsedData.Longitude[LoopIndex] = ParseParameter.BufferPtr[StartIndex+LoopIndex+3];
@@ -226,61 +269,69 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 							ParsedData.LongitudeDir = ParseParameter.BufferPtr[EndIndex+1];
 							// Start of Latitude is the end of longitude
 							StartIndex = EndIndex;
+							// set the Longitude flag to be '1' to indicate that we get the valid longitude
 							LongitudeFlag = 1;
 						}
 						else
 						{
+							// set the Longitude flag to be '0' to indicate that we did not get the valid longitude
 							LongitudeFlag = 0;
 						}
 					}
 
 					//search for Longitude direction ",E,"
-					ParsedData[0] = ',';
-					ParsedData[1] = 'E';
-					ParsedData[2] = ',';
-					ParseParameter.DataPtr = ParsedData;
+					ParseData[0] = ',';
+					ParseData[1] = 'E';
+					ParseData[2] = ',';
+					ParseParameter.DataPtr = ParseData;
 					ParseParameter.DataLength = 3;
-					ParseRet = Parse(&ParseParameter)
+					ParseRet = Parse(&ParseParameter);
 					// if found 
 					if (ParseRet == PARSE_OK)
 					{
 						// mark the end index of Latitude
 						EndIndex = ParseParameter.Index;
+						// fill data on the parseddata global variable
 						for (LoopIndex = 0; LoopIndex <=(EndIndex - StartIndex -4); LoopIndex++)
 						{
 							ParsedData.Latitude[LoopIndex] = ParseParameter.BufferPtr[StartIndex+LoopIndex+3];
 						}
 						ParsedData.LatitudeDir = ParseParameter.BufferPtr[EndIndex+1];
+						// set the Latitude flag to be '1' to indicate that we get the valid latitude
 						LatitudeFlag = 1;
 					}
 					// else
 					else
 					{
 						//search for Longitude direction ",W,"
-						ParsedData[0] = ',';
-						ParsedData[1] = 'W';
-						ParsedData[2] = ',';
-						ParseParameter.DataPtr = ParsedData;
+						ParseData[0] = ',';
+						ParseData[1] = 'W';
+						ParseData[2] = ',';
+						ParseParameter.DataPtr = ParseData;
 						ParseParameter.DataLength = 3;
-						ParseRet = Parse(&ParseParameter)
+						ParseRet = Parse(&ParseParameter);
 						// if found 
 						if (ParseRet == PARSE_OK)
 						{
 							// mark the end index of Latitude
 							EndIndex = ParseParameter.Index;
+							// fill data on the parseddata global variable
 							for (LoopIndex = 0; LoopIndex <=(EndIndex - StartIndex -4); LoopIndex++)
 							{
 								ParsedData.Latitude[LoopIndex] = ParseParameter.BufferPtr[StartIndex+LoopIndex+3];
 							}
 							ParsedData.LatitudeDir = ParseParameter.BufferPtr[EndIndex+1];
+							// set the Latitude flag to be '1' to indicate that we get the valid latitude
 							LatitudeFlag = 1;
 						}
 						else
 						{
+							// set the Latitude flag to be '0' to indicate that we did not get the valid latitude
 							LatitudeFlag = 0;
 						}	
 					}
 
+					// check if we get the valid longitude and latitude or not
 					if (LongitudeFlag && LatitudeFlag)
 					{
 						RetVar = GPS_OK;
@@ -299,6 +350,7 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 				// else
 				else
 				{
+					RetVar = GPS_NOK;
 					// Change the state to be Error
 					State = GPS_ERROR;
 				}
@@ -306,6 +358,7 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 			//else
 			else
 			{
+				RetVar = GPS_NOK;
 				// Change the state to be Error
 				State = GPS_ERROR;
 			}
@@ -315,7 +368,7 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 		case GPS_ERROR:
 		{
 			// return GPS_NOk
-			RetVar = GPS_NOk;
+			RetVar = GPS_NOK;
 			// execute the error call back function
 			GPS_Ptr->ErrorCallBack();
 			// change the state to be IDLE
