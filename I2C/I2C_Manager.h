@@ -5,7 +5,7 @@
  *	Microcontroller: STM32F407VG
  *
 */
-
+//
 
 #ifndef I2C_MANAGER_H
 
