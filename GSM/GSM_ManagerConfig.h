@@ -1,19 +1,18 @@
 /**************************************************************************************
-*File name: GSM_Config.h
+*File name: GSM_ManagerConfig.h
 *Auther : edited by the user
-*Date: 6/3/2018
+*Date: 18/3/2018
 *Description:
 *	This file contains:
-*		- A macro that containes the number of groups of the GSM modules
+*		- A macro that containes the the cyclic time witch the functions get called periodicly with
 *Microcontroller: STM32F407VG
 ***************************************************************************************/ 
 
 #ifndef GSM_CONFIG_H
 #define GSM_CONFIG_H
 
-/* A configuration to the number of GPIO groups*/
-#define GSM_NUMBER_OF_GROUPS 1U
+//the cyclic time witch the functions get called periodicly with
+#define CYCLIC_TIME 10
 
-//--------------------------------------------------------------------
 
 #endif

@@ -16,6 +16,17 @@
 **********				GSM Helper functions prototypes						********
 ***********************************************************************************/
 
+/*
+ * This function used to compare two strings
+ * Inputs:
+         - Str1		: A pointer to the first string
+         - Str2		: A pointer to the second string
+         - Length	: the length of the two strings
+         
+ * Output:
+         - an indication of the success of the function
+*/
+
 static GSM_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint16_t Length);
 
 /***********************************************************************************
@@ -30,191 +41,8 @@ volatile static uint16_t ExpectedResponseLength;//the length of the expected Res
 
 
 /***********************************************************************************
-**********					GSM UART call back functions					********
-***********************************************************************************/
-
-/*
- * This function callback function for the GSM UART Tx it is called when the transmissin of the command is done  
- * Inputs:NONE
- * Output:NONE
-*/
-
-void GSM_Tx_CallBackFn (void)
-{	
-	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the reciption begin
-	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the command
-
-	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
-
-	//start recieving the response of the command 
-	UART_Check = UART_StartSilentReception(RecievedResponse, ResponseLength, ConfigPtr->UartChannelId);
-
-	//if the reciption start didn't work 
-	if (UART_Check == UART_NOK)
-	{
-		ResponseLength = 0;
-		//call the manager call back function with start silant reciption error
-		ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
-	}
-	else{;/*MISRA*/}
-}
-
-/*
- * This function callback function for the GSM UART Rx it is called when the reciption of the command response is done
- * Inputs:NONE
- * Output:NONE
-*/
-
-void GSM_Rx_CallBackFn (void)
-{
-	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the reciption begin
-
-	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
-
-	//compare the recieved response with the expected response 
-	GSM_Check = StrComp(RecievedResponse, ExpectedResponse, ExpectedResponseLength);
-
-	//call the manager call back function with the state of the command success
-	ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
-}
-
-/***********************************************************************************
 **********                      GSM functions' bodies                      ********
 ***********************************************************************************/
-
-//-------------------------------- Hardware --------------------------------------
-
-/*
- * This function used to power on the GSM module
- * Inputs:NONE
- * Output:
-		- an indication of the success of the function
-*/
-
-GSM_CheckType GSM_PowerOn (void)
-{
-    //variable declaration
-    GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the function
-    GPIO_CheckType GPIO_Check = GPIO_NOK;// variable to indicate the success of the GPIO function
-        
-    const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
-
-	//-----------------hardware power on ----------------------------
-	//Power Key sequance
-	GPIO_Check = GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, HIGH);//PWRK HIGH
-	if(GPIO_Check == GPIO_OK)
-	{
-		Delay_ms(30);
-		GPIO_Check = GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, LOW);//PWRK LOW
-		if(GPIO_Check == GPIO_OK)
-		{
-			Delay_ms(1100);
-			GPIO_Check = GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, HIGH);//PWRK HIGH
-			if(GPIO_Check == GPIO_OK)
-			{
-				//RTS LOW for software handling
-				GPIO_Check = GPIO_Write(GSM_ConfigPtr->RTSGroupId, GSM_ConfigPtr->RTSPinMask, LOW);
-				if(GPIO_Check == GPIO_OK)
-				{
-					//set DTR HIGH for the sleep mode
-					GPIO_Check = GPIO_Write(GSM_ConfigPtr->DTRGroupId, GSM_ConfigPtr->DTRPinMask, HIGH);
-					if(GPIO_Check == GPIO_OK)
-					{
-						RetVar = GSM_OK;
-					}
-					else
-					{
-						RetVar = GSM_NOK;
-					}
-				}
-				else
-				{
-					RetVar = GSM_NOK;
-				}
-			}
-			else
-			{
-				RetVar = GSM_NOK;
-			}
-		}
-		else
-		{
-			RetVar = GSM_NOK;
-		}
-	}
-	else
-	{
-		RetVar = GSM_NOK;
-	}	
-      
-	return RetVar;
-}
-
-/*
- * This function used to WakeUp the GSM module from sleep mode
- * Inputs:NONOE
- * Output:
-         - an indication of the success of the function
-*/
-
-
-GSM_CheckType GSM_WakeUp (void)
-{
-    //variable declaration
-    GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the reset
-    GPIO_CheckType GPIO_Check = GPIO_NOK;// variable to indicate the success of the GPIO function
-    const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
-
-	//set DTR LOW to wakeup the GSM module
-	GPIO_Check = GPIO_Write(GSM_ConfigPtr->DTRGroupId, GSM_ConfigPtr->DTRPinMask, LOW);
-
-	if(GPIO_Check == GPIO_OK)
-	{
-		RetVar = GSM_OK;
-	}
-	else
-	{
-		RetVar = GSM_NOK;
-	}
-
-	return RetVar;
-}
-
-/*
- * This function used to put the GSM module in sleep mode
- *Inputs:NONE
- * Output:
-         - an indication of the success of the function
-*/
-
-
-
-
-GSM_CheckType GSM_Sleep (void)
-{
-    //variable declaration
-    GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the reset
-    GPIO_CheckType GPIO_Check = GPIO_NOK;// variable to indicate the success of the GPIO function
-    const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
-            
-	//set DTR HIGH to put the GSM module in sleep mode
-	GPIO_Check = GPIO_Write(GSM_ConfigPtr->DTRGroupId, GSM_ConfigPtr->DTRPinMask, HIGH);
-                
-	if(GPIO_Check == GPIO_OK)
-	{
-		RetVar = GSM_OK;
-	}
-	else
-	{
-		RetVar = GSM_NOK;
-	}
-        
-	//return RetVar;
-}
-
-
-
-//------------------------------------- Software -----------------------------------
 
 /*
  * This function used to establish the communication with the GSM module
@@ -223,7 +51,7 @@ GSM_CheckType GSM_Sleep (void)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_AT (void)
+GSM_CheckType GSM_ATCommand_AT(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -259,8 +87,7 @@ GSM_CheckType GSM_ATCommand_AT (void)
 	return RetVar;
 }
 
-
-      /*
+/*
  * This function used to reset all parameters to default
  * Inputs:NONE
  * Output:
@@ -268,7 +95,7 @@ GSM_CheckType GSM_ATCommand_AT (void)
 */
 
 
-GSM_CheckType GSM_ATCommand_RstDefault (void)
+GSM_CheckType GSM_ATCommand_RstDefault(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -307,7 +134,7 @@ GSM_CheckType GSM_ATCommand_RstDefault (void)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_StopEcho (void)
+GSM_CheckType GSM_ATCommand_StopEcho(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -345,8 +172,6 @@ GSM_CheckType GSM_ATCommand_StopEcho (void)
 	return RetVar;  
 }
 
-
-
 /*
  * This function used to set the baud rate of GSM module
  * Inputs:NONE
@@ -354,7 +179,7 @@ GSM_CheckType GSM_ATCommand_StopEcho (void)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_BRFix (void)
+GSM_CheckType GSM_ATCommand_BRFix(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -365,13 +190,13 @@ GSM_CheckType GSM_ATCommand_BRFix (void)
 	uint8_t CommandLength;//the length of the sent command
 	uint8_t CommandToSend[14] = {'A','T','+','I','P','R','='};//the command to be sent
 
-//------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------
  	const UART_ConfigType* UART_ConfigPtr;//declare a pointer to structur of the GPIO_ConfigType
 	UART_ConfigPtr = UART_ConfigParam;
 
 	//get the baud rate of the uart
 	UART_BR = UART_ConfigPtr[ConfigPtr->UartChannelId].BaudRate;
-//------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------
 
 	//concatinate the baudrate with the command and calculate the command length  
 	if(UART_BR == BR9600)
@@ -444,8 +269,6 @@ GSM_CheckType GSM_ATCommand_BRFix (void)
 	return RetVar;
 }
 
-
-
 /*
  * This function used to delete all sms messages on the GSM module
  * Inputs:NONE
@@ -453,7 +276,7 @@ GSM_CheckType GSM_ATCommand_BRFix (void)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_DeleteSMS (void)
+GSM_CheckType GSM_ATCommand_DeleteSMS(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -493,7 +316,7 @@ GSM_CheckType GSM_ATCommand_DeleteSMS (void)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_SMSFormat (uint8_t Mode)
+GSM_CheckType GSM_ATCommand_SMSFormat(uint8_t Mode)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -540,7 +363,7 @@ GSM_CheckType GSM_ATCommand_SMSFormat (uint8_t Mode)
 */
 
 
-GSM_CheckType GSM_ATCommand_CharSet (void)
+GSM_CheckType GSM_ATCommand_CharSet(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -580,7 +403,7 @@ GSM_CheckType GSM_ATCommand_CharSet (void)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_SetSMSMobNum (uint8_t* PhoneNum)
+GSM_CheckType GSM_ATCommand_SetSMSMobNum(uint8_t* PhoneNum)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -637,7 +460,7 @@ GSM_CheckType GSM_ATCommand_SetSMSMobNum (uint8_t* PhoneNum)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_SetSMSWriteMsg (uint8_t* Msg, uint8_t MsgLength)
+GSM_CheckType GSM_ATCommand_SetSMSWriteMsg(uint8_t* Msg, uint8_t MsgLength)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -679,7 +502,7 @@ GSM_CheckType GSM_ATCommand_SetSMSWriteMsg (uint8_t* Msg, uint8_t MsgLength)
          - an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_CheckRecievedSMS (void)
+GSM_CheckType GSM_ATCommand_CheckRecievedSMS(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
@@ -755,6 +578,54 @@ GSM_CheckType GSM_ATCommand_ReadSMS(uint8_t MsgLength)
 	return RetVar;
 }
 
+/***********************************************************************************
+**********					GSM UART call back functions					********
+***********************************************************************************/
+
+/*
+ * This function callback function for the GSM UART Tx it is called when the transmissin of the command is done  
+ * Inputs:NONE
+ * Output:NONE
+*/
+
+void GSM_Tx_CallBackFn(void)
+{	
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the reciption begin
+	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the command
+
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
+
+	//start recieving the response of the command 
+	UART_Check = UART_StartSilentReception(RecievedResponse, ResponseLength, ConfigPtr->UartChannelId);
+
+	//if the reciption start didn't work 
+	if (UART_Check == UART_NOK)
+	{
+		ResponseLength = 0;
+		//call the manager call back function with start silant reciption error
+		ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
+	}
+	else{;/*MISRA*/}
+}
+
+/*
+ * This function callback function for the GSM UART Rx it is called when the reciption of the command response is done
+ * Inputs:NONE
+ * Output:NONE
+*/
+
+void GSM_Rx_CallBackFn(void)
+{
+	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the reciption begin
+
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
+
+	//compare the recieved response with the expected response 
+	GSM_Check = StrComp(RecievedResponse, ExpectedResponse, ExpectedResponseLength);
+
+	//call the manager call back function with the state of the command success
+	ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
+}
 
 /***********************************************************************************
 **********							Helper functions						********
@@ -772,20 +643,23 @@ GSM_CheckType GSM_ATCommand_ReadSMS(uint8_t MsgLength)
 */
 static GSM_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint16_t Length)
 {
-        //variable declaration
-        uint16_t i; //loop index
-        GSM_CheckType RetVar = GSM_OK;// variable to indicate the success of the function
+	//variable declaration
+	uint16_t i; //loop index
+	GSM_CheckType RetVar = GSM_OK;// variable to indicate the success of the function
 
-        //String compare loop
-        for(i = 0; (i < Length) && (RetVar == GSM_OK); i++)
-        {
-                //compatre the ith char of the two strings
-                if(Str1[i] != Str2[i])
-                {
-                        //the ith chars of the two strings don't match
-                        RetVar = GSM_NOK;
-                }
-                else{;/*MISRA*/}
-        }
-        return RetVar;
+	//String compare loop
+	for(i = 0; (i < Length) && (RetVar == GSM_OK); i++)
+	{
+		//compatre the ith char of the two strings
+		if(Str1[i] != Str2[i])
+		{
+			//the ith chars of the two strings don't match
+			RetVar = GSM_NOK;
+		}
+		else{;/*MISRA*/}
+	}
+
+	return RetVar;
 }
+
+/************************************************************************************/
