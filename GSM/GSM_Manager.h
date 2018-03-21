@@ -10,11 +10,12 @@
                                 -prototype of the APIs of the M95 GSM module manager
 *        Microcontroller: STM32F407VG
 ***************************************************************************************/ 
-#ifndef GSM_H
-#define GSM_H
+#ifndef GSM_MANAGER_H
+#define GSM_MANAGER_H
 
 #include "GSM.h"
 #include "GPIO.h"
+#include "GSM_ManagerConfig.h"
 
 /***********************************************************************************
 **********                      Defined data types                              ****
@@ -24,6 +25,11 @@
 
 //data type for the return values in the GSM manager
 typedef enum {GSM_Manage_OK = 0, GSM_Manage_NOK, GSM_Manage_InProgress} GSM_Manage_CheckType;
+
+
+//--------------------------------------------------------------------------------------
+//a pointer to a call back function data type
+typedef void (*GSM_ManagerCallBackFn)(void);
 
 
 //--------------------------------------------------------------------------------------
@@ -51,6 +57,21 @@ typedef struct
 	uint8_t RingGroupId;
 	/*pin mask of the Ring in the selected GPIO group*/
 	uint16_t RingPinMask;
+
+	/*a pointer to a buffer to hole the recived message for the client to read*/
+	uint8_t* ReadMsgBuffer;
+
+	/*a variable to indecate the expected length of the recived message*/
+	uint8_t ReadMsgLength;
+
+	/*a pointer to the send message callback function*/
+	GSM_ManagerCallBackFn SendMsgCallBack;
+
+	/*a pointer to the recieved message callback function*/
+	GSM_ManagerCallBackFn RecieveMsgCallBack;
+
+	/*a pointer to the error callback function*/
+	GSM_ManagerCallBackFn ErrorCallBack;
 
 }GSM_ManageConfigType;
 
@@ -102,8 +123,7 @@ void StartCommunication(void);
  * Output:NONE
 */
 
-void SoftWareReset(void)
-
+void SoftWareReset(void);
 /*
  * This function is used to send an SMS from GSM module
  *Inputs:
@@ -114,6 +134,7 @@ void SoftWareReset(void)
 */
 
 void SendSMS(uint8_t* Msg, uint8_t MsgLength, uint8_t* PhoneNum);
+
 /*
  * This function is a FSM to manage the on going operations of the GSM module
  *Inputs:NONE
