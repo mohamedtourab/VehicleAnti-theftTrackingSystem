@@ -1,3 +1,18 @@
+/*
+ *
+ *	Authors: Wessam Adel and Mohamed Mamdouh
+ *	Date: 19/3/2018
+ *	Microcontroller: STM32F407VG
+ *
+*/
+
+
+
+
+
+
+
+
 #ifndef ADC_DRIVER_H
 #define ADC_DRIVER_H
 
@@ -6,10 +21,18 @@
 
 typedef enum
 {
-    RESOLUTION_6=0,
-    RESOLUTION_8,
+	ADC_OK,
+	ADC_NOK
+	
+}ADC_CheckType;
+
+
+typedef enum
+{
+    RESOLUTION_12=0,
     RESOLUTION_10,
-    RESOLUTION_12
+    RESOLUTION_8,
+    RESOLUTION_6
     
 }Resolution;
 
@@ -21,7 +44,7 @@ typedef enum
 
 typedef enum
 {
-    DISABLE_SCAN_MODE,
+    DISABLE_SCAN_MODE=0,
     ENABLE_SCAN_MODE
 }ScanMode;
 
@@ -59,6 +82,7 @@ typedef struct
 
 }ADC_ConfigType;
 
+ADC_CheckType ADC_Init(void);
 
 
 

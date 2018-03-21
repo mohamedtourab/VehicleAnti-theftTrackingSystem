@@ -1,3 +1,14 @@
+/*
+ *
+ *	Authors: Wessam Adel and Mohamed Mamdouh
+ *	Date: 19/3/2018
+ *	Microcontroller: STM32F407VG
+ *
+*/
+
+
+
+
 #include "ADC_Driver.h"
 
 typedef volatile uint32_t* const ADC_RegisterAddressType;
@@ -87,5 +98,35 @@ typedef volatile uint32_t* const ADC_RegisterAddressType;
 #define ADC_SMPR2_SMP6_POS      	    (18U)                                         
 #define ADC_SMPR2_SMP7_POS      	    (21U)                                         
 #define ADC_SMPR2_SMP8_POS      	    (24U)                                         
-#define ADC_SMPR2_SMP9_POS      	    (27U)                                         
+#define ADC_SMPR2_SMP9_POS      	    (27U)   
+#define RCC_APB2ENR_ADCEN_POS(PERIPHERAL_ID)         (8U+PERIPHERAL_ID-1) 
 
+#if(ADC_PERIPHERAL_NUMBER>ADC_MAXIMUM_NUMBER)
+#error "Invalid Peripheral Number"
+#endif
+
+
+
+
+ADC_CheckType ADC_Init(void)
+{
+	ADC_CheckType RetVal;
+	const ADC_ConfigType* ConfigPtr;
+	ConfigPtr = &ADC_ConfigParam[0];
+
+	ADC_RCC_APB2EN |= ( ((uint32_t)1)<<RCC_APB2ENR_ADCEN_POS(ConfigPtr->ADC_Peripheral_ID) );
+	//I don't know how to Initialize GPIO as its not alternative function it's an Analog Mode
+	ADC_CR1(ConfigPtr->ADC_Peripheral_ID) |= ((ConfigPtr->ADC_ScanMode)<<ADC_CR1_SCAN_POS);
+	ADC_CR1(ConfigPtr->ADC_Peripheral_ID) |= ((ConfigPtr->ADC_Resolution)<<ADC_CR1_RES_POS);
+	//the line below doesn't configured in the configuration structure(to be edited)
+	ADC_CR2(ConfigPtr->ADC_Peripheral_ID) |= 1<<ADC_CR2_EOCS_POS; //The EOC bit is set at the end of each regular conversion. Overrun detection is enabled.
+
+	ADC_CR2(ConfigPtr->ADC_Peripheral_ID) |= ((ConfigPtr->ADC_DataAlignment)<<ADC_CR2_ALIGN_POS);
+
+	
+	
+	
+	
+
+
+}
