@@ -21,7 +21,7 @@ typedef volatile uint32_t* const STM32F4_PrefRegType;
 /******************************clock gating registers********************************/
 
 //base address for the reset and clock control register (in AHB1 bus)
-#define RCC_BASE_ADD		0x40023800U
+#define RCC_BASE_ADD	0x40023800U
 /***********************************RCC offsets************************************/
 #define RCC_AHB1ENR_OFFSET	0x30U
 #define RCC_AHB2ENR_OFFSET	0x34U	
@@ -44,6 +44,3 @@ typedef volatile uint32_t* const STM32F4_PrefRegType;
 
 
 #endif
-
-
-
