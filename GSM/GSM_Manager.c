@@ -321,7 +321,7 @@ GSM_Manage_CheckType GSM_ManageOngoingOperation(void)
                 //set the start flag to configure the module right after software reset 
                 StartFlag = 1;
 				//set the return value to in progress
-                RetVar=GSM_Manage_OK;
+                RetVar = GSM_Manage_InProgress;
 			}
 			//if the function wasn't executed successfully
 			else if(GSM_ManageCheck == GSM_Manage_NOK)
@@ -657,11 +657,6 @@ static GSM_Manage_CheckType GSM_ManageSWReset(void)
 				RetVar = GSM_Manage_OK;
 				//put the module into sleep 
 				GSM_ManageSleep();
-
-				//set the start flag to restablish the communication with the module
-				StartFlag = 1;
-				//reset the flg
-				SoftWareRstFlag = 0;
 
 			}
 		}
