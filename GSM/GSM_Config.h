@@ -1,11 +1,11 @@
 /**************************************************************************************
-*	File name: GSM_Config.h
+*File name: GSM_Config.h
 *Auther : edited by the user
-*	Date: 6/3/2018
-*	Description:
-*			This file contains:
-*			- A macro that containes the number of groups of the GSM modules
-*	Microcontroller: STM32F407VG
+*Date: 6/3/2018
+*Description:
+*	This file contains:
+*		- A macro that containes the number of groups of the GSM modules
+*Microcontroller: STM32F407VG
 ***************************************************************************************/ 
 
 #ifndef GSM_CONFIG_H

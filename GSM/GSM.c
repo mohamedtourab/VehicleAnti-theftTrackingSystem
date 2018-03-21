@@ -1,53 +1,55 @@
 /**************************************************************************************
-*        File name: GSM.c
-*        Auther : 
-                        -Abdelrhman Hosny
-                        -Amr Mohamed
-*        Date: 6/3/2018
-*        Description:
-*                        This file contains:
-*                        - implementation of functions used to control the M95 GSM module
-*        Microcontroller: STM32F407VG
+*File name: GSM.c
+*Auther : 
+		-Abdelrhman Hosny
+		-Amr Mohamed
+*Date: 6/3/2018
+*Description:
+*	This file contains:
+*		- implementation of functions used to control the M95 GSM module
+*Microcontroller: STM32F407VG
 ***************************************************************************************/ 
 
 #include "GSM.h"
 
-static GSM_CheckType StringComp(uint8_t* Str1, uint8_t* Str2, uint32_t Length);
+/***********************************************************************************
+**********				GSM Helper functions prototypes						********
+***********************************************************************************/
+
+static GSM_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint16_t Length);
 
 /***********************************************************************************
 **********                      Declare Globals                             ********
 ***********************************************************************************/
 
-//volatile static uint8_t CommandToSend[100] = {0};//the command to be sent
-//volatile static uint16_t CommandLength = 0;//the length of the command to be sent
-
 volatile uint8_t RecievedResponse[100];//array to hold the recieved response
 volatile uint16_t ResponseLength;//the length of the RecievedResponse
 
 volatile static uint8_t ExpectedResponse[100];//the expected response
-volatile static uint16_t ExpectedResponseLength;//the length of the RecievedResponse
+volatile static uint16_t ExpectedResponseLength;//the length of the expected Response
 
 
+/***********************************************************************************
+**********					GSM UART call back functions					********
+***********************************************************************************/
 
 /*
- * This function callback function for the GSM UART RX
+ * This function callback function for the GSM UART Tx it is called when the transmissin of the command is done  
  * Inputs:NONE
  * Output:NONE
 */
 
 void GSM_Tx_CallBackFn (void)
-{
+{	
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the reciption begin
+	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the command
 
-		
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
-
-
-	
+	//start recieving the response of the command 
 	UART_Check = UART_StartSilentReception(RecievedResponse, ResponseLength, ConfigPtr->UartChannelId);
 
+	//if the reciption start didn't work 
 	if (UART_Check == UART_NOK)
 	{
 		ResponseLength = 0;
@@ -58,23 +60,23 @@ void GSM_Tx_CallBackFn (void)
 }
 
 /*
- * This function callback function for the GSM UART RX
+ * This function callback function for the GSM UART Rx it is called when the reciption of the command response is done
  * Inputs:NONE
  * Output:NONE
 */
 
 void GSM_Rx_CallBackFn (void)
 {
-	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the transmission begin
+	GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the reciption begin
 
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	GSM_Check = StringComp(RecievedResponse, ExpectedResponse, ExpectedResponseLength);
+	//compare the recieved response with the expected response 
+	GSM_Check = StrComp(RecievedResponse, ExpectedResponse, ExpectedResponseLength);
 
+	//call the manager call back function with the state of the command success
 	ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
 }
-
-
 
 /***********************************************************************************
 **********                      GSM functions' bodies                      ********
@@ -84,10 +86,9 @@ void GSM_Rx_CallBackFn (void)
 
 /*
  * This function used to power on the GSM module
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONE
  * Output:
-         - an indication of the success of the function
+		- an indication of the success of the function
 */
 
 GSM_CheckType GSM_PowerOn (void)
@@ -96,11 +97,7 @@ GSM_CheckType GSM_PowerOn (void)
     GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the function
     GPIO_CheckType GPIO_Check = GPIO_NOK;// variable to indicate the success of the GPIO function
         
-    const GSM_ConfigType* GSM_ConfigPtr;//declare a pointer to structur of the GSM_ConfigType
-
-	//assign a pointer to the configuration structure
-	GSM_ConfigPtr = &GSM_ConfigParam;
-           
+    const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	//-----------------hardware power on ----------------------------
 	//Power Key sequance
@@ -120,7 +117,7 @@ GSM_CheckType GSM_PowerOn (void)
 				if(GPIO_Check == GPIO_OK)
 				{
 					//set DTR HIGH for the sleep mode
-					GPIO_Check = GPIO_Write(GSM_ConfigPtr->DTR, GSM_ConfigPtr->DTRPinMask, HIGH);
+					GPIO_Check = GPIO_Write(GSM_ConfigPtr->DTRGroupId, GSM_ConfigPtr->DTRPinMask, HIGH);
 					if(GPIO_Check == GPIO_OK)
 					{
 						RetVar = GSM_OK;
@@ -155,8 +152,7 @@ GSM_CheckType GSM_PowerOn (void)
 
 /*
  * This function used to WakeUp the GSM module from sleep mode
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONOE
  * Output:
          - an indication of the success of the function
 */
@@ -166,12 +162,9 @@ GSM_CheckType GSM_WakeUp (void)
 {
     //variable declaration
     GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the reset
-    GPIO_CheckType GPIO_Check = GPIO_NOK;
-    const GSM_ConfigType* GSM_ConfigPtr;//declare a pointer to structur of the GSM_ConfigType
+    GPIO_CheckType GPIO_Check = GPIO_NOK;// variable to indicate the success of the GPIO function
+    const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-    //assign a pointer to the configuration structure
-	GSM_ConfigPtr = &GSM_ConfigParam;
-            
 	//set DTR LOW to wakeup the GSM module
 	GPIO_Check = GPIO_Write(GSM_ConfigPtr->DTRGroupId, GSM_ConfigPtr->DTRPinMask, LOW);
 
@@ -189,23 +182,20 @@ GSM_CheckType GSM_WakeUp (void)
 
 /*
  * This function used to put the GSM module in sleep mode
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ *Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
+
+
 
 
 GSM_CheckType GSM_Sleep (void)
 {
     //variable declaration
     GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the reset
-    GPIO_CheckType GPIO_Check = GPIO_NOK;
-    const GSM_ConfigType* GSM_ConfigPtr;//declare a pointer to structur of the GSM_ConfigType
-    
-	//assign a pointer to the configuration structure
-	GSM_ConfigPtr = GSM_ConfigParam;
-                
+    GPIO_CheckType GPIO_Check = GPIO_NOK;// variable to indicate the success of the GPIO function
+    const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
             
 	//set DTR HIGH to put the GSM module in sleep mode
 	GPIO_Check = GPIO_Write(GSM_ConfigPtr->DTRGroupId, GSM_ConfigPtr->DTRPinMask, HIGH);
@@ -217,32 +207,32 @@ GSM_CheckType GSM_Sleep (void)
 	else
 	{
 		RetVar = GSM_NOK;
+	}
         
-	return RetVar;
+	//return RetVar;
 }
+
 
 
 //------------------------------------- Software -----------------------------------
 
 /*
  * This function used to establish the communication with the GSM module
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
-
 
 GSM_CheckType GSM_ATCommand_AT (void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begining
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[3] = {'A','T','\r'};//the command to be sent
 	
-	//the expected response
+	//assign the expected response
 	ExpectedResponse[0] = 'A';
 	ExpectedResponse[1] = 'T';
 	ExpectedResponse[2] = '\r';
@@ -251,12 +241,14 @@ GSM_CheckType GSM_ATCommand_AT (void)
 	ExpectedResponse[5] = 'O';
 	ExpectedResponse[6] = 'K';
 
-	ResponseLength = 7;//the length of the RecievedResponse
-	ExpectedResponseLength = 7;//the length of the RecievedResponse
+	ResponseLength = 7;//assign the length of the Recieved Response
+	ExpectedResponseLength = 7;//assign the length of the expectedResponse
 
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 3, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -270,8 +262,7 @@ GSM_CheckType GSM_ATCommand_AT (void)
 
       /*
  * This function used to reset all parameters to default
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
@@ -281,21 +272,24 @@ GSM_CheckType GSM_ATCommand_RstDefault (void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[5] = {'A','T','&','F','\r'};//the command to be sent
 
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = 'O';
 	ExpectedResponse[3]	= 'K';
 
-	ResponseLength = 4;//the length of the RecievedResponse
-	ExpectedResponseLength = 4;//the length of the RecievedResponse
+	ResponseLength = 4;//assign the length of the Recieved Response
+	ExpectedResponseLength = 4;//the length of the expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 5, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -308,8 +302,7 @@ GSM_CheckType GSM_ATCommand_RstDefault (void)
 
 /*
  * This function used to stop echoing the commands from GSM module
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
@@ -318,11 +311,12 @@ GSM_CheckType GSM_ATCommand_StopEcho (void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[5] = {'A','T','E','0','\r'};//the command to be sent
 
+	//assign the expected response 
 	ExpectedResponse[0] = 'A';
 	ExpectedResponse[1] = 'T';
 	ExpectedResponse[2] = 'E';
@@ -334,11 +328,13 @@ GSM_CheckType GSM_ATCommand_StopEcho (void)
 	ExpectedResponse[8] = 'K';
 
 
-	ResponseLength = 9;//the length of the RecievedResponse
-	ExpectedResponseLength = 9;//the length of the RecievedResponse
+	ResponseLength = 9;//assign the length of the Recieved Response
+	ExpectedResponseLength = 9;//assign the length of the Expexted Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 5, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -353,21 +349,17 @@ GSM_CheckType GSM_ATCommand_StopEcho (void)
 
 /*
  * This function used to set the baud rate of GSM module
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
 
 GSM_CheckType GSM_ATCommand_BRFix (void)
 {
-   
-       
-
-//declarations
+	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 	uint32_t UART_BR;//variable to hold the baud rate from the uart
 
 	uint8_t CommandLength;//the length of the sent command
@@ -378,7 +370,7 @@ GSM_CheckType GSM_ATCommand_BRFix (void)
 	UART_ConfigPtr = UART_ConfigParam;
 
 	//get the baud rate of the uart
-	UART_BR = UART_ConfigPtr[GSM_ConfigPtr->UartChannelID].BaudRate;
+	UART_BR = UART_ConfigPtr[ConfigPtr->UartChannelId].BaudRate;
 //------------------------------------------------------------------------------------------------
 
 	//concatinate the baudrate with the command and calculate the command length  
@@ -429,16 +421,19 @@ GSM_CheckType GSM_ATCommand_BRFix (void)
 	else{;/*MISRA*/}
 
 
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = 'O';
 	ExpectedResponse[3]	= 'K';
 
-	ResponseLength = 4;//the length of the RecievedResponse
-	ExpectedResponseLength = 4;//the length of the RecievedResponse
+	ResponseLength = 4;//assign the length of the Recieved Response
+	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, CommandLength, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -453,8 +448,7 @@ GSM_CheckType GSM_ATCommand_BRFix (void)
 
 /*
  * This function used to delete all sms messages on the GSM module
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
@@ -463,21 +457,24 @@ GSM_CheckType GSM_ATCommand_DeleteSMS (void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[11] = {'A','T','+','Q','M','G','D','A','=','6','\r'};//the command to be sent
 
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = 'O';
 	ExpectedResponse[3]	= 'K';
 
-	ResponseLength = 4;//the length of the RecievedResponse
-	ExpectedResponseLength = 4;//the length of the RecievedResponse
+	ResponseLength = 4;//assign the length of the Recieved Response
+	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 11, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -490,9 +487,8 @@ GSM_CheckType GSM_ATCommand_DeleteSMS (void)
 
 /*
  * This function used to set the sms format of GSM module
- Inputs:
-         - GroupId                        : the index of the structure in the GSM_ConfigParam array
-         - Mode                                 : the sms format (PDU, TEXT)
+ * Inputs:
+         - Mode		: the sms format (PDU, TEXT)
  * Output:
          - an indication of the success of the function
 */
@@ -501,8 +497,8 @@ GSM_CheckType GSM_ATCommand_SMSFormat (uint8_t Mode)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[10] = {'A','T','+','C','M','G','F','=','0','\r'};//the command to be sent
 
@@ -513,16 +509,19 @@ GSM_CheckType GSM_ATCommand_SMSFormat (uint8_t Mode)
 	}
 	else{;/*MISRA*/}
 
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = 'O';
 	ExpectedResponse[3]	= 'K';
 
-	ResponseLength = 4;//the length of the RecievedResponse
-	ExpectedResponseLength = 4;//the length of the RecievedResponse
+	ResponseLength = 4;//assign the length of the Recieved Response
+	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 10, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -535,8 +534,7 @@ GSM_CheckType GSM_ATCommand_SMSFormat (uint8_t Mode)
 
 /*
  * This function used to set character set of GSM module
- Inputs:
-         - GroupId		: the index of the structure in the GSM_ConfigParam array
+ * Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
@@ -546,21 +544,24 @@ GSM_CheckType GSM_ATCommand_CharSet (void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[14] = {'A','T','+','C','S','C','S','=','"','G','S','M','"','\r'};//the command to be sent
 
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = 'O';
 	ExpectedResponse[3]	= 'K';
 
-	ResponseLength = 4;//the length of the RecievedResponse
-	ExpectedResponseLength = 4;//the length of the RecievedResponse
+	ResponseLength = 4;//assign the length of the Recieved Response
+	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 14, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -571,16 +572,24 @@ GSM_CheckType GSM_ATCommand_CharSet (void)
 	return RetVar;   
 }
 
+/*
+ * This function used to send an SMS from GSM module
+ *Inputs:
+         - PhoneNum		: a pointer to the phone number to send the SMS
+ * Output:
+         - an indication of the success of the function
+*/
 
 GSM_CheckType GSM_ATCommand_SetSMSMobNum (uint8_t* PhoneNum)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[24] = {'A','T','+','C','M','G','S','=','"','+','2'};//the command to be sent
 
+	//concatinate the phone number with the command
 	CommandToSend[11] = PhoneNum[0];
 	CommandToSend[12] = PhoneNum[1];
 	CommandToSend[13] = PhoneNum[2];
@@ -596,16 +605,19 @@ GSM_CheckType GSM_ATCommand_SetSMSMobNum (uint8_t* PhoneNum)
 	CommandToSend[22] = '"';
 	CommandToSend[23] = '\r';
 
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = '>';
 	ExpectedResponse[3]	= ' ';
 
-	ResponseLength = 4;//the length of the RecievedResponse
-	ExpectedResponseLength = 4;//the length of the RecievedResponse
+	ResponseLength = 4;//assign the length of the Recieved Response
+	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 24, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -616,13 +628,23 @@ GSM_CheckType GSM_ATCommand_SetSMSMobNum (uint8_t* PhoneNum)
 	return RetVar;   
 }
 
+/*
+ * This function used to send an SMS from GSM module
+ *Inputs:
+         - Msg 			: a pointer the SMS message + (Ctrl+Z) or (ascii: 26)
+         - MsgLengrh	: the length of the SMS message + 1 (Ctrl+Z)
+ * Output:
+         - an indication of the success of the function
+*/
+
 GSM_CheckType GSM_ATCommand_SetSMSWriteMsg (uint8_t* Msg, uint8_t MsgLength)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = '\r';
@@ -633,11 +655,13 @@ GSM_CheckType GSM_ATCommand_SetSMSWriteMsg (uint8_t* Msg, uint8_t MsgLength)
 	ExpectedResponse[7] = 'G';
 	ExpectedResponse[8] = 'S';
 
-	ResponseLength = 9;//the length of the RecievedResponse
-	ExpectedResponseLength = 9;//the length of the RecievedResponse
+	ResponseLength = 9;//assign the length of the Recieved Response
+	ExpectedResponseLength = 9;//the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(Msg, MsgLength, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -648,16 +672,23 @@ GSM_CheckType GSM_ATCommand_SetSMSWriteMsg (uint8_t* Msg, uint8_t MsgLength)
 	return RetVar;
 }
 
-GSM_CheckType GSM_ATCommand_CheckSMSRecieved(void)
+/*
+ * This function used to check if there is SMS message in index 1 
+ *Inputs:NONE
+ * Output:
+         - an indication of the success of the function
+*/
+
+GSM_CheckType GSM_ATCommand_CheckRecievedSMS (void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[10] = {'A','T','+','C','M','G','R','=','1','\r'};//the command to be sent
 
-
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = '+';
@@ -665,11 +696,13 @@ GSM_CheckType GSM_ATCommand_CheckSMSRecieved(void)
 	ExpectedResponse[4] = 'M';
 	ExpectedResponse[5] = 'G';
 
-	ResponseLength = 6 ;//the length of the RecievedResponse
-	ExpectedResponseLength = 6;//the length of the RecievedResponse
+	ResponseLength = 6 ;//assign the length of the Recieved Response
+	ExpectedResponseLength = 6;//the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 10, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -680,16 +713,24 @@ GSM_CheckType GSM_ATCommand_CheckSMSRecieved(void)
 	return RetVar;
 }
 
-GSM_CheckType GSM_ATCommand_SMSRead(uint8_t MsgLength)
+/*
+ * This function used to read the SMS message in index 1  
+ *Inputs:
+ 		- MsgLengrh	: the length of the expected SMS message 
+ * Output:
+         - an indication of the success of the function
+*/
+
+GSM_CheckType GSM_ATCommand_ReadSMS(uint8_t MsgLength)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_CheckType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	uint8_t CommandToSend[10] = {'A','T','+','C','M','G','R','=','1','\r'};//the command to be sent
 
-
+	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
 	ExpectedResponse[2] = '+';
@@ -697,11 +738,13 @@ GSM_CheckType GSM_ATCommand_SMSRead(uint8_t MsgLength)
 	ExpectedResponse[4] = 'M';
 	ExpectedResponse[5] = 'G';
 
-	ResponseLength = 63 + MsgLength;//the length of the RecievedResponse
-	ExpectedResponseLength = 6;//the length of the RecievedResponse
+	ResponseLength = 65 + MsgLength;//assign the length of the Recieved Response
+	ExpectedResponseLength = 6;//assign the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, 10, ConfigPtr->UartChannelId);
+
+	//if the the start of transmission was successfull
 	if(UART_Check == UART_OK)
 	{
 		//transmission was successfull
@@ -711,35 +754,26 @@ GSM_CheckType GSM_ATCommand_SMSRead(uint8_t MsgLength)
 		
 	return RetVar;
 }
-
-
-
-/***********************************************************************************
-**********					GSM UART call back functions					********
-***********************************************************************************/
-
 
 
 /***********************************************************************************
 **********							Helper functions						********
 ***********************************************************************************/
 
-
-
 /*
  * This function used to compare two strings
  * Inputs:
-         - Str1                        : A pointer to the first string
-         - Str2                     : A pointer to the second string
-         - Length                 : the length of the two strings
+         - Str1		: A pointer to the first string
+         - Str2		: A pointer to the second string
+         - Length	: the length of the two strings
          
  * Output:
          - an indication of the success of the function
 */
-static GSM_CheckType StringComp(uint8_t* Str1, uint8_t* Str2, uint32_t Length)
+static GSM_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint16_t Length)
 {
         //variable declaration
-        uint32_t i; //loop index
+        uint16_t i; //loop index
         GSM_CheckType RetVar = GSM_OK;// variable to indicate the success of the function
 
         //String compare loop
