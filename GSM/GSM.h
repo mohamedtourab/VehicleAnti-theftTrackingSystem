@@ -14,7 +14,6 @@
 #define GSM_H
 
 #include "UART.h"
-#include "GSM_Config.h"
 
 /*************************************************************************************
 **********                     Macros to control GSM                            ******

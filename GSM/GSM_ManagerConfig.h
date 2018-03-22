@@ -8,8 +8,8 @@
 *Microcontroller: STM32F407VG
 ***************************************************************************************/ 
 
-#ifndef GSM_CONFIG_H
-#define GSM_CONFIG_H
+#ifndef GSM_MANAGER_CONFIG_H
+#define GSM_MANAGER_CONFIG_H
 
 //the cyclic time witch the functions get called periodicly with
 #define CYCLIC_TIME 10

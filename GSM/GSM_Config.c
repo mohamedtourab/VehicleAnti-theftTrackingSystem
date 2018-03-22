@@ -9,7 +9,6 @@
 ***************************************************************************************/ 
 
 #include "GSM.h"
-#include "GSM_Config.h"
 
 void GSM_CallBack(GSM_CheckType GSM_Check, uint8_t* RecievedResponse, uint16_t ResponseLength);
 

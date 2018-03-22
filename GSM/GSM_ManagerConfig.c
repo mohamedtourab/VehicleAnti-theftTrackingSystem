@@ -7,7 +7,7 @@
 *               - A structurs that containes the Groups to manage the GSM 
 *Microcontroller: STM32F407VG
 ***************************************************************************************/ 
-
+#include "GSM_Manager.h"
 
 const GSM_ManageConfigType GSM_ManageConfigParam =
 {
@@ -24,6 +24,6 @@ const GSM_ManageConfigType GSM_ManageConfigParam =
         /*pin mask of the DTR in the selected GPIO group*/
         
         /*GSM Ring Group ID*/
-        4,PIN_MASK_0,
+        4,PIN_MASK_0
         /*pin mask of the Ring in the selected GPIO group*/
 };

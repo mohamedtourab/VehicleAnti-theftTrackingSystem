@@ -147,7 +147,7 @@ GSM_CheckType GSM_ATCommand_StopEcho(void)
 	ExpectedResponse[0] = 'A';
 	ExpectedResponse[1] = 'T';
 	ExpectedResponse[2] = 'E';
-	ExpectedResponse[3]	= 'O';
+	ExpectedResponse[3]	= '0';
 	ExpectedResponse[4] = '\r';
 	ExpectedResponse[5]	= '\r';
 	ExpectedResponse[6] = '\n';
@@ -601,7 +601,7 @@ void GSM_Tx_CallBackFn(void)
 	//if the reciption start didn't work 
 	if (UART_Check == UART_NOK)
 	{
-		ResponseLength = 0;
+		ResponseLength = 0;//################################################################################
 		//call the manager call back function with start silant reciption error
 		ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
 	}

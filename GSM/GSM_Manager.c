@@ -18,7 +18,7 @@
 #define T1000	(1000/CYCLIC_TIME)
 #define T1100	(1100/CYCLIC_TIME)
 #define T5000	(5000/CYCLIC_TIME)
-#define T7000	(7000/CYCLIC_TIME)
+#define T7000	(12000/CYCLIC_TIME)
 
 //the states of the manager function
 #define UNINIT 0U
@@ -60,12 +60,16 @@ static GSM_Manage_CheckType GSM_ManageWakeUp(void);
 
 static GSM_Manage_CheckType GSM_ManageSleep(void);
 
+
+static GSM_Manage_CheckType GSM_ManageSWReset(void);
+
 /*
  * This function is a FSM to configure the GSM module with the necessary settings
  *Inputs:NONE
  * Output:
          - an indication of the success of the function
 */
+
 
 static GSM_Manage_CheckType GSM_ManageStart(void);
 
@@ -97,16 +101,16 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
 ***********************************************************************************/
 
 //variables to hold the data from the gsm driver callback function
-static uint8_t* RecievedResponsePtr;
-static uint16_t RecievedResponseLength;
+uint8_t* RecievedResponsePtr;
+uint16_t RecievedResponseLength;
 //a flag to hold the state of the at command called by the functions in this file whether it succeded or not or it is still in progress
-volatile static GSM_Manage_CheckType GSM_Flag;
+volatile GSM_Manage_CheckType GSM_Flag;
 
 //flags for the functions called by the client
 volatile static uint8_t SoftWareRstFlag;
 volatile static uint8_t StartFlag;
 volatile static uint8_t SendMsgFlag;
-volatile static uint8_t RecieveMsgFlage;
+volatile static uint8_t RecieveMsgFlag;
 
 //variables to hold the data needed to send an SMS
 static uint8_t* MsgGlob;
@@ -130,7 +134,7 @@ void GSM_Init(void)
 	StartFlag = 0;
 	SendMsgFlag = 0;
 	SoftWareRstFlag = 0;
-	RecieveMsgFlage = 0;
+	RecieveMsgFlag = 0;
 }
 
 /*
@@ -181,9 +185,19 @@ void SendSMS(uint8_t* Msg, uint8_t MsgLength, uint8_t* PhoneNum)
 
 GSM_Manage_CheckType GSM_ManageOngoingOperation(void)
 {
+	GSM_ManageConfigType* ConfigPtr = &GSM_ManageConfigParam;
 	GSM_Manage_CheckType RetVar = GSM_Manage_InProgress;// variable to hold the return value to indecate the state of the function 
 	GSM_Manage_CheckType GSM_ManageCheck = GSM_Manage_InProgress;// variable to indicate indecate the state of the called function
 	static uint8_t State;//a variable to hold the state of the FSM
+	uint16_t RingData;
+
+	GPIO_Read(ConfigPtr->RingGroupId, &RingData);
+
+	if((RingData & RingPinMask) == 0)
+	{
+		RecieveMsgFlag = 1;
+	}
+	else{;/*MISRA*/}
 
 
 	switch(State)
@@ -286,7 +300,7 @@ GSM_Manage_CheckType GSM_ManageOngoingOperation(void)
 		case SWRESET :
 		{
 			//call software reset function
-			//GSM_ManageCheck = GSM_ManageSWReset();
+			GSM_ManageCheck = GSM_ManageSWReset();
 
 			//if the function was executed successfully
 			if(GSM_ManageCheck == GSM_Manage_OK)
@@ -330,7 +344,8 @@ GSM_Manage_CheckType GSM_ManageOngoingOperation(void)
 				SendMsgFlag = 0;
 				//set the return value to in progress
                 RetVar=GSM_Manage_OK;
-				//###################################callback function####################	
+
+				ConfigPtr->SendMsgCallBack(); 
 			}
 			//if the function wasn't executed successfully
 			else if(GSM_ManageCheck == GSM_Manage_NOK)
@@ -353,7 +368,7 @@ GSM_Manage_CheckType GSM_ManageOngoingOperation(void)
 		case RECIEVESMS :
 		{
 			//call read SMS function
-			//GSM_ManageCheck = GSM_ManageReadSMS(uint8_t* MsgBuffer, uint8_t MsgLength);//######################################
+			GSM_ManageCheck = GSM_ManageReadSMS(ConfigPtr->ReadMsgBuffer, ConfigPtr->ReadMsgLength);
 			
 			//if the function was executed successfully
 			if(GSM_ManageCheck == GSM_Manage_OK)
@@ -364,7 +379,7 @@ GSM_Manage_CheckType GSM_ManageOngoingOperation(void)
                 RecieveMsgFlage = 0;
                 //set the return value to in progress
 				RetVar=GSM_Manage_InProgress;
-				//###################################callback function####################	
+				ConfigPtr->RecieveMsgCallBack();
 			}
 			//if the function wasn't executed successfully
 			else if(GSM_ManageCheck == GSM_Manage_NOK)
@@ -383,7 +398,7 @@ GSM_Manage_CheckType GSM_ManageOngoingOperation(void)
 
 		case ERROR :
 		{
-			;
+			ConfigPtr->ErrorCallBack();
 		}
 
 		default : {;/*MISRA*/}
@@ -572,6 +587,94 @@ static GSM_Manage_CheckType GSM_ManageSleep(void)
 	//return RetVar;
 }
 
+
+static GSM_Manage_CheckType GSM_ManageSWReset(void)
+{
+	//variables declarations 
+	GSM_Manage_CheckType RetVar = GSM_Manage_InProgress;// variable to hold the return value to indecate the state of the function 
+	GSM_Manage_CheckType GSM_ManageCheck = GSM_Manage_OK;// variable to indicate indecate the state of the AT command
+    static GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the AT command start transmitting
+    static uint16_t Counter = 0;//acounter to count how meny times this function was called to calculate time delays
+
+    //a condition to start the command transmision onley once	
+	if (GSM_Check == GSM_NOK)
+	{
+		//wake up the module for communication 
+		GSM_ManageCheck = GSM_ManageWakeUp();
+		
+		//if the wakeup was successfull
+		if (GSM_ManageCheck == GSM_Manage_OK)
+		{
+			//start the command transmission
+			GSM_Check = GSM_ATCommand_RstDefault();
+		}
+		else{;/*MISRA*/}
+                
+	}
+	else {;/*MISRA*/}
+
+	//if the command transmission was successfull
+	if(GSM_Check == GSM_OK)
+	{
+		//check if the commad was executed successfully
+		if(GSM_Flag == GSM_Manage_OK)
+		{
+			//delay between commands 
+			if(Counter < T1000)
+			{
+				Counter++;
+			}
+			//if the delay is done
+			else
+			{
+				//reset GSM_Check value to the idle value to be able to execute the next commands
+				GSM_Check = GSM_NOK;
+				//reset the counter to be able to execute other delays
+				Counter = 0;
+				//reset the GSM_Flag to the idle value to be able to execute the next commands
+				GSM_Flag = GSM_Manage_InProgress;
+				//set the return value to ok for the manager to know that the function done execution successully
+				RetVar = GSM_Manage_OK;
+				//put the module into sleep 
+				GSM_ManageSleep();
+
+				StartFlag = 1;
+
+				SoftWareRstFlag = 0;
+
+			}
+		}
+		//if the command done executing but with error 
+		else if (GSM_Flag == GSM_Manage_NOK)
+		{
+			//reset GSM_Check value to the idle value to be able to execute the next commands
+			GSM_Check = GSM_NOK;
+			//set the return value to not ok for the manager to handle the error
+			RetVar = GSM_Manage_NOK;
+			//reset the GSM_Flag to the idle value to be able to execute the next commands
+			GSM_Flag = GSM_Manage_InProgress;
+
+			//put the module into sleep 
+			GSM_ManageSleep();
+		}
+		else{;/*MISRA*/}
+	}
+	//if the command transmission wasn't successfull
+	else
+	{
+		//set the return value to not ok for the manager to handle the error
+		RetVar = GSM_Manage_NOK;
+		//put the module into sleep 
+		GSM_ManageSleep();
+	}
+
+	return RetVar;
+}
+
+
+
+
+
 /*
  * This function used to configure the GSM module with the necessary settings
  *Inputs:NONE
@@ -585,7 +688,7 @@ static GSM_Manage_CheckType GSM_ManageStart(void)
 	GSM_Manage_CheckType RetVar = GSM_Manage_InProgress;// variable to hold the return value to indecate the state of the function 
 	GSM_Manage_CheckType GSM_ManageCheck = GSM_Manage_OK;// variable to indicate indecate the state of the AT command
     static GSM_CheckType GSM_Check = GSM_NOK;// variable to indicate the success of the AT command start transmitting
-    static uint8_t Counter = 0;//acounter to count how meny times this function was called to calculate time delays
+    static uint16_t Counter = 0;//acounter to count how meny times this function was called to calculate time delays
     static uint8_t State = 0;//a variable to hold the state of the FSM
 
     //start the FSM
@@ -1228,6 +1331,8 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                 {
                     //start the command transmission
                     GSM_Check = GSM_ATCommand_SMSFormat(TEXT);
+									GPIO_Write(5,PIN_MASK_12,HIGH);
+									GPIO_Write(5,PIN_MASK_13,HIGH);
                 }
                 else{;/*MISRA*/}
                 
@@ -1241,10 +1346,11 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                 //check if the commad was executed successfully
                 if(GSM_Flag == GSM_Manage_OK)
                 {
+									GPIO_Write(5,PIN_MASK_13,LOW);
                     //reset GSM_Check value to the idle value to be able to execute the next commands
                     GSM_Check = GSM_NOK;
                     //change the state to move to the next command
-                    State = 1;
+                    State = 2;
                     //reset the GSM_Flag to the idle value to be able to execute the next commands
                     GSM_Flag = GSM_Manage_InProgress;
                 }
@@ -1291,11 +1397,14 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
             //if the delay is done
             else
     		{
+					
     			//a condition to start the command transmision onley once   
                 if (GSM_Check == GSM_NOK)
                 {
                     //start the command transmission
                     GSM_Check = GSM_ATCommand_CharSet();
+										GPIO_Write(5,PIN_MASK_12,LOW);
+										GPIO_Write(5,PIN_MASK_13,HIGH);
                 }
                 else {;/*MISRA*/}
 
@@ -1305,8 +1414,10 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                     //check if the commad was executed successfully
                     if(GSM_Flag == GSM_Manage_OK)
                     {
+								GPIO_Write(5,PIN_MASK_13,LOW);
                         //reset GSM_Check value to the idle value to be able to execute the next commands
                         GSM_Check = GSM_NOK;
+											GPIO_Write(5,PIN_MASK_14,LOW);
                         //reset the counter to be able to execute other delays
                         Counter = 0;
                         //change the state to move to the next command
@@ -1329,8 +1440,9 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                         GSM_Flag = GSM_Manage_InProgress;
                         //put the module into sleep 
                         GSM_ManageSleep();
+											GPIO_Write(5,PIN_MASK_14,LOW);
                     }
-                    else{;/*MISRA*/}
+                    else{GPIO_Write(5,PIN_MASK_14,HIGH);}
                 }
                 //if the command transmission wasn't successfull
                 else
@@ -1366,6 +1478,8 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                 {
                     //start the command transmission
                     GSM_Check = GSM_ATCommand_SetSMSMobNum (PhoneNum);
+									GPIO_Write(5,PIN_MASK_12,HIGH);
+									GPIO_Write(5,PIN_MASK_13,HIGH);
                 }
                 else {;/*MISRA*/}
 
@@ -1375,12 +1489,7 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                     //check if the commad was executed successfully
                     if(GSM_Flag == GSM_Manage_OK)
                     {
-                        //exectract the msg from the response
-                        for(Index = 0; Index < MsgLength; Index++)
-                        {
-                            MsgBuffer[Index] = RecievedResponsePtr[RecievedResponseLength - MsgLength + Index];
-                        }
-
+								GPIO_Write(5,PIN_MASK_13,LOW);
                         //reset GSM_Check value to the idle value to be able to execute the next commands
                         GSM_Check = GSM_NOK;
                         //reset the counter to be able to execute other delays
@@ -1442,6 +1551,8 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                 {
                     //start the command transmission
                     GSM_Check = GSM_ATCommand_SetSMSWriteMsg(Msg, MsgLength);
+									GPIO_Write(5,PIN_MASK_12,LOW);
+									GPIO_Write(5,PIN_MASK_13,HIGH);
                 }
                 else {;/*MISRA*/}
     			
@@ -1451,6 +1562,7 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                     //check if the commad was executed successfully
                     if(GSM_Flag == GSM_Manage_OK)
                     {
+								GPIO_Write(5,PIN_MASK_13,LOW);
                         //reset GSM_Check value to the idle value to be able to execute the next commands
                         GSM_Check = GSM_NOK;
                         //reset the counter to be able to execute other delays
@@ -1512,6 +1624,8 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                 {
                     //start the command transmission
                     GSM_Check = GSM_ATCommand_SMSFormat(PDU);
+									GPIO_Write(5,PIN_MASK_12,HIGH);
+									GPIO_Write(5,PIN_MASK_13,HIGH);
                 }
                 else {;/*MISRA*/}
 
@@ -1521,6 +1635,7 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
                     //check if the commad was executed successfully
                     if(GSM_Flag == GSM_Manage_OK)
                     {
+									GPIO_Write(5,PIN_MASK_13,LOW);
                         //reset GSM_Check value to the idle value to be able to execute the next commands
                         GSM_Check = GSM_NOK;
                         //reset the counter to be able to execute other delays
@@ -1578,23 +1693,4 @@ static GSM_Manage_CheckType GSM_ManageSetSMS(uint8_t* Msg, uint8_t MsgLength, ui
 
 /**********************************************************************************************/
 
-
-
-
-
-/*
-	SOFTWARE reset function
-	HARDWARE reset function
-
-	Manager call back functions
-
-
-	Configration of the manager
-		Reade msg
-		msg length
-		call back function of user
-		error call back function
-
-	Error call back functions
-*/
 
