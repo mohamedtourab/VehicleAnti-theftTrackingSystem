@@ -470,16 +470,14 @@ GSM_CheckType GSM_ATCommand_SetSMSWriteMsg(uint8_t* Msg, uint8_t MsgLength)
 	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
-	ExpectedResponse[2] = '\r';
-	ExpectedResponse[3] = '\n';
-	ExpectedResponse[4] = '+';
-	ExpectedResponse[5] = 'C';
-	ExpectedResponse[6] = 'M';
-	ExpectedResponse[7] = 'G';
-	ExpectedResponse[8] = 'S';
+	ExpectedResponse[2] = '+';
+	ExpectedResponse[3] = 'C';
+	ExpectedResponse[4] = 'M';
+	ExpectedResponse[5] = 'G';
+	ExpectedResponse[6] = 'S';
 
-	ResponseLength = 9;//assign the length of the Recieved Response
-	ExpectedResponseLength = 9;//the length of the Expected Response
+	ResponseLength = 7;//assign the length of the Recieved Response
+	ExpectedResponseLength = 7;//the length of the Expected Response
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(Msg, MsgLength, ConfigPtr->UartChannelId);
