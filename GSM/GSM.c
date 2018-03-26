@@ -12,6 +12,25 @@
 
 #include "GSM.h"
 
+
+#define INDEVELOPMODE 1		//COMMENT this line in run mode , it exist only to check if UART_StartSilentTransmission is called correctly 
+
+//lengths of the received msg buffer and expected received msg buffer
+#define MAXIMUM_RECEIVED_MSG_LENGTH		100
+#define MAXIMUM_EXPECTED_MSG_LENGTH 	100
+
+
+#define AT_COMMAND_LENGTH				3
+#define RSTDEFAULT_COMMAND_LENGTH		5
+#define STOPECHO_COMMAND_LENGTH			5
+#define BRFIX_COMMAND_LENGTH			12
+#define DELETESMS_COMMAND_LENGTH		11
+#define SMSFORMAT_COMMAND_LENGTH		10
+#define CHARSET_COMMAND_LENGTH			14
+#define SETSMSMOBNUM_COMMAND_LENGTH		24
+#define CHECKRECIEVEDSMS_COMMAND_LENGTH	10
+#define READSMS_COMMAND_LENGTH			10
+
 /***********************************************************************************
 **********				GSM Helper functions prototypes						********
 ***********************************************************************************/
@@ -33,11 +52,11 @@ static GSM_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint16_t Length);
 **********                      Declare Globals                             ********
 ***********************************************************************************/
 
-volatile uint8_t RecievedResponse[100];//array to hold the recieved response
-volatile uint16_t ResponseLength;//the length of the RecievedResponse
+static uint8_t ReceivedResponse[MAXIMUM_RECEIVED_MSG_LENGTH];//array to hold the recieved response
+static uint16_t ResponseLength;//the length of the ReceivedResponse
 
-volatile static uint8_t ExpectedResponse[100];//the expected response
-volatile static uint16_t ExpectedResponseLength;//the length of the expected Response
+static uint8_t ExpectedResponse[MAXIMUM_EXPECTED_MSG_LENGTH];//the expected response
+static uint16_t ExpectedResponseLength;//the length of the expected Response
 
 
 /***********************************************************************************
@@ -55,10 +74,10 @@ GSM_CheckType GSM_ATCommand_AT(void)
 {
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
-	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begining
-	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
+	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission beginning
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
 
-	uint8_t CommandToSend[3] = {'A','T','\r'};//the command to be sent
+	uint8_t CommandToSend[AT_COMMAND_LENGTH] = {'A','T','\r'};//the command to be sent
 	
 	//assign the expected response
 	ExpectedResponse[0] = 'A';
@@ -69,20 +88,37 @@ GSM_CheckType GSM_ATCommand_AT(void)
 	ExpectedResponse[5] = 'O';
 	ExpectedResponse[6] = 'K';
 
-	ResponseLength = 7;//assign the length of the Recieved Response
+	ResponseLength = 7;//assign the length of the Received Response
 	ExpectedResponseLength = 7;//assign the length of the expectedResponse
 
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 3, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, AT_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste excution time on assginning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, AT_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
+
 	
 	return RetVar;
 }
@@ -100,9 +136,9 @@ GSM_CheckType GSM_ATCommand_RstDefault(void)
 	//declarations
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
-	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
 
-	uint8_t CommandToSend[5] = {'A','T','&','F','\r'};//the command to be sent
+	uint8_t CommandToSend[RSTDEFAULT_COMMAND_LENGTH] = {'A','T','&','F','\r'};//the command to be sent
 
 	//assign the expected response 
 	ExpectedResponse[0] = '\r';
@@ -113,16 +149,32 @@ GSM_CheckType GSM_ATCommand_RstDefault(void)
 	ResponseLength = 4;//assign the length of the Recieved Response
 	ExpectedResponseLength = 4;//the length of the expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 5, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, RSTDEFAULT_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, RSTDEFAULT_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;  
 }
@@ -141,7 +193,7 @@ GSM_CheckType GSM_ATCommand_StopEcho(void)
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	uint8_t CommandToSend[5] = {'A','T','E','0','\r'};//the command to be sent
+	uint8_t CommandToSend[STOPECHO_COMMAND_LENGTH] = {'A','T','E','0','\r'};//the command to be sent
 
 	//assign the expected response 
 	ExpectedResponse[0] = 'A';
@@ -158,16 +210,32 @@ GSM_CheckType GSM_ATCommand_StopEcho(void)
 	ResponseLength = 9;//assign the length of the Recieved Response
 	ExpectedResponseLength = 9;//assign the length of the Expexted Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 5, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, STOPECHO_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, STOPECHO_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;  
 }
@@ -185,65 +253,15 @@ GSM_CheckType GSM_ATCommand_BRFix(void)
 	GSM_CheckType RetVar = GSM_NOK;// variable to indicate the success of the AT command
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
-	uint32_t UART_BR;//variable to hold the baud rate from the uart
 
-	uint8_t CommandLength;//the length of the sent command
-	uint8_t CommandToSend[14] = {'A','T','+','I','P','R','='};//the command to be sent
+	uint8_t CommandToSend[BRFIX_COMMAND_LENGTH] = {'A','T','+','I','P','R','='};//the command to be sent
 
-	//------------------------------------------------------------------------------------------------
- 	const UART_ConfigType* UART_ConfigPtr;//declare a pointer to structur of the GPIO_ConfigType
-	UART_ConfigPtr = UART_ConfigParam;
-
-	//get the baud rate of the uart
-	UART_BR = UART_ConfigPtr[ConfigPtr->UartChannelId].BaudRate;
-	//------------------------------------------------------------------------------------------------
-
-	//concatinate the baudrate with the command and calculate the command length  
-	if(UART_BR == BR9600)
-	{
-		CommandToSend[7] = '9';
-		CommandToSend[8] = '6';
-		CommandToSend[9] = '0';
-		CommandToSend[10] = '0';
-		CommandToSend[11] = '\r';
-
-		CommandLength = 12;
-	}
-	else if(UART_BR == BR19200)
-	{
-		CommandToSend[7] = '1';
-		CommandToSend[8] = '9';
-		CommandToSend[9] = '2';
-		CommandToSend[10] = '0';
-		CommandToSend[11] = '0';
-		CommandToSend[12] = '\r';
-
-		CommandLength = 13;
-	}
-	else if(UART_BR == BR38400)
-	{
-		CommandToSend[7] = '3';
-		CommandToSend[8] = '8';
-		CommandToSend[9] = '4';
-		CommandToSend[10] = '0';
-		CommandToSend[11] = '0';
-		CommandToSend[12] = '\r';
-
-		CommandLength = 13;
-	}
-	else if(UART_BR == BR115200)
-	{
-		CommandToSend[7] = '1';
-		CommandToSend[8] = '1';
-		CommandToSend[9] = '5';
-		CommandToSend[10] = '2';
-		CommandToSend[11] = '0';
-		CommandToSend[12] = '0';
-		CommandToSend[13] = '\r';
-
-		CommandLength = 14;
-	}
-	else{;/*MISRA*/}
+	//now we fix baudrate to 9600 , to change it we change the command length
+	CommandToSend[7] = '9';
+	CommandToSend[8] = '6';
+	CommandToSend[9] = '0';
+	CommandToSend[10] = '0';
+	CommandToSend[11] = '\r';
 
 
 	//assign the expected response 
@@ -255,16 +273,32 @@ GSM_CheckType GSM_ATCommand_BRFix(void)
 	ResponseLength = 4;//assign the length of the Recieved Response
 	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, CommandLength, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, BRFIX_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, BRFIX_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;
 }
@@ -283,7 +317,7 @@ GSM_CheckType GSM_ATCommand_DeleteSMS(void)
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	uint8_t CommandToSend[11] = {'A','T','+','Q','M','G','D','A','=','6','\r'};//the command to be sent
+	uint8_t CommandToSend[DELETESMS_COMMAND_LENGTH] = {'A','T','+','Q','M','G','D','A','=','6','\r'};//the command to be sent
 
 	//assign the expected response 
 	ExpectedResponse[0] = '\r';
@@ -294,16 +328,32 @@ GSM_CheckType GSM_ATCommand_DeleteSMS(void)
 	ResponseLength = 4;//assign the length of the Recieved Response
 	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 11, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, DELETESMS_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, DELETESMS_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;  
 }
@@ -323,7 +373,7 @@ GSM_CheckType GSM_ATCommand_SMSFormat(uint8_t Mode)
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	uint8_t CommandToSend[10] = {'A','T','+','C','M','G','F','=','0','\r'};//the command to be sent
+	uint8_t CommandToSend[SMSFORMAT_COMMAND_LENGTH] = {'A','T','+','C','M','G','F','=','0','\r'};//the command to be sent
 
 	//set the sms format
 	if(Mode == TEXT)
@@ -341,16 +391,32 @@ GSM_CheckType GSM_ATCommand_SMSFormat(uint8_t Mode)
 	ResponseLength = 4;//assign the length of the Recieved Response
 	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 10, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, SMSFORMAT_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, SMSFORMAT_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;     
 }
@@ -370,7 +436,7 @@ GSM_CheckType GSM_ATCommand_CharSet(void)
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	uint8_t CommandToSend[14] = {'A','T','+','C','S','C','S','=','"','G','S','M','"','\r'};//the command to be sent
+	uint8_t CommandToSend[CHARSET_COMMAND_LENGTH] = {'A','T','+','C','S','C','S','=','"','G','S','M','"','\r'};//the command to be sent
 
 	//assign the expected response 
 	ExpectedResponse[0] = '\r';
@@ -381,16 +447,32 @@ GSM_CheckType GSM_ATCommand_CharSet(void)
 	ResponseLength = 4;//assign the length of the Recieved Response
 	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 14, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, CHARSET_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, CHARSET_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;   
 }
@@ -410,7 +492,7 @@ GSM_CheckType GSM_ATCommand_SetSMSMobNum(uint8_t* PhoneNum)
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	uint8_t CommandToSend[24] = {'A','T','+','C','M','G','S','=','"','+','2'};//the command to be sent
+	uint8_t CommandToSend[SETSMSMOBNUM_COMMAND_LENGTH] = {'A','T','+','C','M','G','S','=','"','+','2'};//the command to be sent
 
 	//concatinate the phone number with the command
 	CommandToSend[11] = PhoneNum[0];
@@ -437,16 +519,32 @@ GSM_CheckType GSM_ATCommand_SetSMSMobNum(uint8_t* PhoneNum)
 	ResponseLength = 4;//assign the length of the Recieved Response
 	ExpectedResponseLength = 4;//assign the length of the Expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 24, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, SETSMSMOBNUM_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, SETSMSMOBNUM_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;   
 }
@@ -479,16 +577,32 @@ GSM_CheckType GSM_ATCommand_SetSMSWriteMsg(uint8_t* Msg, uint8_t MsgLength)
 	ResponseLength = 7;//assign the length of the Recieved Response
 	ExpectedResponseLength = 7;//the length of the Expected Response
 
-	//start the transmission of the command
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
+	//start the transmission of the command with the message sent by calling the function
 	UART_Check = UART_StartSilentTransmission(Msg, MsgLength, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type with the message sent by calling the function
+	UART_StartSilentTransmission(Msg, MsgLength, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;
 }
@@ -507,7 +621,7 @@ GSM_CheckType GSM_ATCommand_CheckRecievedSMS(void)
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	uint8_t CommandToSend[10] = {'A','T','+','C','M','G','R','=','1','\r'};//the command to be sent
+	uint8_t CommandToSend[CHECKRECIEVEDSMS_COMMAND_LENGTH] = {'A','T','+','C','M','G','R','=','1','\r'};//the command to be sent
 
 	//assign the expected response 
 	ExpectedResponse[0] = '\r';
@@ -520,16 +634,32 @@ GSM_CheckType GSM_ATCommand_CheckRecievedSMS(void)
 	ResponseLength = 6 ;//assign the length of the Recieved Response
 	ExpectedResponseLength = 6;//the length of the Expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 10, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, CHECKRECIEVEDSMS_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, CHECKRECIEVEDSMS_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;
 }
@@ -549,7 +679,7 @@ GSM_CheckType GSM_ATCommand_ReadSMS(uint8_t MsgLength)
 	UART_ChkType UART_Check = UART_NOK;// variable to indicate the success of the transmission begin
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
-	uint8_t CommandToSend[10] = {'A','T','+','C','M','G','R','=','1','\r'};//the command to be sent
+	uint8_t CommandToSend[READSMS_COMMAND_LENGTH] = {'A','T','+','C','M','G','R','=','1','\r'};//the command to be sent
 
 	//assign the expected response 
 	ExpectedResponse[0] = '\r';
@@ -562,16 +692,32 @@ GSM_CheckType GSM_ATCommand_ReadSMS(uint8_t MsgLength)
 	ResponseLength = 65 + MsgLength;//assign the length of the Recieved Response
 	ExpectedResponseLength = 6;//assign the length of the Expected Response
 
+	#ifdef INDEVELOPMODE
+	//we are in develop mode
 	//start the transmission of the command
-	UART_Check = UART_StartSilentTransmission(CommandToSend, 10, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentTransmission(CommandToSend, READSMS_COMMAND_LENGTH, ConfigPtr->UartChannelId);
 
-	//if the the start of transmission was successfull
+	//if the the start of transmission was successful
 	if(UART_Check == UART_OK)
 	{
-		//transmission was successfull
+		//transmission was successful
 		RetVar = GSM_OK;
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*Dont take a procedure because RetVar already initialized by GSM_NOK
+		so there's no need to waste execution time on assigning it again*/
+	}
+
+
+	#else
+	//we are in run mode
+	//start the transmission without checking of its return type
+	UART_StartSilentTransmission(CommandToSend, READSMS_COMMAND_LENGTH, ConfigPtr->UartChannelId);
+	//transmission done successfully
+	RetVar = GSM_OK;
+
+	#endif
 		
 	return RetVar;
 }
@@ -594,16 +740,20 @@ void GSM_Tx_CallBackFn(void)
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	//start recieving the response of the command 
-	UART_Check = UART_StartSilentReception(RecievedResponse, ResponseLength, ConfigPtr->UartChannelId);
+	UART_Check = UART_StartSilentReception(ReceivedResponse, ResponseLength, ConfigPtr->UartChannelId);
 
 	//if the reciption start didn't work 
 	if (UART_Check == UART_NOK)
 	{
 		ResponseLength = 0;//################################################################################
 		//call the manager call back function with start silant reciption error
-		ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
+		ConfigPtr->GSM_CallBackFnPtr(GSM_Check, ReceivedResponse, ResponseLength); 
 	}
-	else{;/*MISRA*/}
+	else
+	{
+		/*UART_Check now = UART_OK , so we don't have to take any procedure , we just wait for 
+		the reception to complete to enter the RX call back function  */
+	}
 }
 
 /*
@@ -619,10 +769,10 @@ void GSM_Rx_CallBackFn(void)
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structur of the GSM_ConfigType
 
 	//compare the recieved response with the expected response 
-	GSM_Check = StrComp(RecievedResponse, ExpectedResponse, ExpectedResponseLength);
+	GSM_Check = StrComp(ReceivedResponse, ExpectedResponse, ExpectedResponseLength);
 
 	//call the manager call back function with the state of the command success
-	ConfigPtr->GSM_CallBackFnPtr(GSM_Check, RecievedResponse, ResponseLength); 
+	ConfigPtr->GSM_CallBackFnPtr(GSM_Check, ReceivedResponse, ResponseLength); 
 }
 
 /***********************************************************************************
@@ -654,7 +804,10 @@ static GSM_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint16_t Length)
 			//the ith chars of the two strings don't match
 			RetVar = GSM_NOK;
 		}
-		else{;/*MISRA*/}
+		else
+		{
+			/*when STR1[i]==STR2[i] then the two responses are equal so we continue to the next letter */
+		}
 	}
 
 	return RetVar;
