@@ -38,7 +38,7 @@ typedef enum {GSM_OK = 0, GSM_NOK} GSM_CheckType;
 //--------------------------------------------------------------------------------
 
 //a pointer to a call back function data type
-typedef void (*GSM_CallBackFn)(GSM_CheckType, uint8_t*, uint16_t);
+typedef void (*GSM_CallBackFn)(GSM_CheckType, uint8_t*, uint16_t*);
 
 //--------------------------------------------------------------------------------
 

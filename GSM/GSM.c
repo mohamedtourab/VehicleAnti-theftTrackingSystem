@@ -51,7 +51,7 @@ static GSM_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint16_t Length);
 /***********************************************************************************
 **********                      Declare Globals                             ********
 ***********************************************************************************/
-
+//these buffers owned by the driver 
 static uint8_t ReceivedResponse[MAXIMUM_RECEIVED_MSG_LENGTH];//array to hold the recieved response
 static uint16_t ResponseLength;//the length of the ReceivedResponse
 
@@ -745,9 +745,9 @@ void GSM_Tx_CallBackFn(void)
 	//if the reciption start didn't work 
 	if (UART_Check == UART_NOK)
 	{
-		ResponseLength = 0;//################################################################################
+		ResponseLength = 0;
 		//call the manager call back function with start silant reciption error
-		ConfigPtr->GSM_CallBackFnPtr(GSM_Check, ReceivedResponse, ResponseLength); 
+		ConfigPtr->GSM_CallBackFnPtr(GSM_Check, ReceivedResponse, &ResponseLength); 
 	}
 	else
 	{
@@ -755,6 +755,7 @@ void GSM_Tx_CallBackFn(void)
 		the reception to complete to enter the RX call back function  */
 	}
 }
+
 
 /*
  * This function callback function for the GSM UART Rx it is called when the reciption of the command response is done
@@ -772,7 +773,7 @@ void GSM_Rx_CallBackFn(void)
 	GSM_Check = StrComp(ReceivedResponse, ExpectedResponse, ExpectedResponseLength);
 
 	//call the manager call back function with the state of the command success
-	ConfigPtr->GSM_CallBackFnPtr(GSM_Check, ReceivedResponse, ResponseLength); 
+	ConfigPtr->GSM_CallBackFnPtr(GSM_Check, ReceivedResponse, &ResponseLength); 
 }
 
 /***********************************************************************************

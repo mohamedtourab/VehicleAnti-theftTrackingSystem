@@ -10,7 +10,7 @@
 
 #include "GSM.h"
 
-void GSM_CallBack(GSM_CheckType GSM_Check, uint8_t* RecievedResponse, uint16_t ResponseLength);
+void GSM_CallBack(GSM_CheckType GSM_Check, uint8_t* RecievedResponse, uint16_t* ResponseLength);
 
 
 const GSM_ConfigType GSM_ConfigParam=
