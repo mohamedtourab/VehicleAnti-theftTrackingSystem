@@ -63,9 +63,6 @@ typedef struct
 	uint8_t LatitudeDir;
 }Location;
 
-/*enum for the return type*/
-typedef enum {GPS_OK = 0, GPS_NOK = 1}GPS_CheckType;
-
 /*enum for the GPS States*/
 typedef enum {GPS_UNINIT = 0, GPS_IDLE = 1, GPS_WAIT = 2, GPS_PARSE = 3, GPS_ERROR = 4}GPS_States;
 /*--------------------------------------------------------------------------------------*/
@@ -93,11 +90,11 @@ void GetData(Location* Map);
 
 /*
  * This function is used to manage the operation of the GPS in different states
- * The function return:
- *	- GPS_OK: in case of GPS data is valid and we get the Location.
- *	- GPS_NOK: in case of GPS data is invalid.
+ * The function calls FoundCallBack function defined in configuration file 
+ * in case of GPS data is valid and we get the Location and calls ErrorCallBack function 
+ * in case of GPS data is invalid.
 */
-GPS_CheckType GPS_ManagOnGoingOperation(void);
+void GPS_ManagOnGoingOperation(void);
 
 /*
  * The CallBack function That is executed at the end of receiving the data from GPS module

@@ -121,13 +121,12 @@ void GetData(Location* Map)
 
 /*
  * This function is used to manage the operation of the GPS in different states
- * The function return:
- *	- GPS_OK: in case of GPS data is valid and we get the Location.
- *	- GPS_NOK: in case of GPS data is invalid.
+ * The function calls FoundCallBack function defined in configuration file 
+ * in case of GPS data is valid and we get the Location and calls ErrorCallBack function 
+ * in case of GPS data is invalid.
 */
-GPS_CheckType GPS_ManagOnGoingOperation(void)
+void GPS_ManagOnGoingOperation(void)
 {
-	GPS_CheckType RetVar = GPS_OK;
 	const GPS_Config* GPS_Ptr;
 	Parse_CheckType ParseRet;
 	Parse_Cfg ParseParameter = {0,0,0,0,0};
@@ -334,7 +333,6 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 					// check if we get the valid longitude and latitude or not
 					if (LongitudeFlag && LatitudeFlag)
 					{
-						RetVar = GPS_OK;
 						// execute call back function
 						GPS_Ptr->FoundCallBack();
 						// change the state to be IDLE
@@ -350,7 +348,6 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 				// else
 				else
 				{
-					RetVar = GPS_NOK;
 					// Change the state to be Error
 					State = GPS_ERROR;
 				}
@@ -358,7 +355,6 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 			//else
 			else
 			{
-				RetVar = GPS_NOK;
 				// Change the state to be Error
 				State = GPS_ERROR;
 			}
@@ -367,15 +363,12 @@ GPS_CheckType GPS_ManagOnGoingOperation(void)
 		// if Error
 		case GPS_ERROR:
 		{
-			// return GPS_NOk
-			RetVar = GPS_NOK;
 			// execute the error call back function
 			GPS_Ptr->ErrorCallBack();
 			// change the state to be IDLE
 			State = GPS_IDLE;
 		}
 	}
-	return RetVar;
 }
 
 /*
