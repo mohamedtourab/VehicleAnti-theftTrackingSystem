@@ -3,21 +3,33 @@
 *Auther :edited by the user
 *Date: 6/3/2018
 *Description:
-*	This file contains:
-*		- A structurs that containes the Groups to drive the GSM
+*       This file contains:
+*               - A structurs that containes the Groups to manage the GSM 
 *Microcontroller: STM32F407VG
 ***************************************************************************************/ 
-
 #include "GSM.h"
 
-void GSM_CallBack(GSM_CheckType GSM_Check, uint8_t* RecievedResponse, uint16_t* ResponseLength);
+//declared in the application
+extern uint8_t Buffer[3];
 
-
-const GSM_ConfigType GSM_ConfigParam=
+const GSM_ConfigType GSM_ConfigParam =
 {
-        /*Uart Channel number*/
-        0,
 
-        &GSM_CallBack
+        /*GSM power key Group ID & it's pin mask*/
+        2,PIN_MASK_3,
+
+        /*GSM ready to send Group ID*/
+        3,PIN_MASK_14,
+        /*pin mask of the RTS in the selected GPIO group*/
+        
+        /*GSM Ring Group ID*/
+        4,PIN_MASK_12,
+        /*pin mask of the Ring in the selected GPIO group*/
+
+        Buffer,3,
+
+        0,0,0
+
+
 
 };

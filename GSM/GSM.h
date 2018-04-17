@@ -1,194 +1,144 @@
 /**************************************************************************************
-*        File name: GSM.h
-*        Auther : 
-                        -Abdelrhman Hosny
-                        -Amr Mohamed
-*        Date: 6/3/2018
-*        Description:
-*                        this file contains:
-                                -macros to control the M95 GSM module
-                                -prototype of the APIs of the M95 GSM module 
-*        Microcontroller: STM32F407VG
-***************************************************************************************/ 
+*File name: GSM.h
+*Author:
+*		-Abdelrhman Hosny
+*		-Amr Mohamed
+*Date: 6/3/2018
+*Description:
+*	This file contains:
+*		-macros to control the M95 GSM module
+*		-prototype of the APIs of the M95 GSM module
+*Microcontroller: STM32F407VG
+***************************************************************************************/
 #ifndef GSM_H
 #define GSM_H
 
-#include "UART.h"
-
-/*************************************************************************************
-**********                     Macros to control GSM                            ******
-*************************************************************************************/
-
-/*************************************************************************************
-**********              Macros to control GSM SMS format                        ******
-*************************************************************************************/
-
-#define PDU         0
-#define TEXT        1
+#include "GPIO.h"
+#include "GSM_Driver.h"
+#include "GSM_Config.h"
 
 /***********************************************************************************
 **********                      Defined data types                              ****
 ***********************************************************************************/
 
-//--------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------
 
-//enumerate data type for the functions' return values
-typedef enum {GSM_OK = 0, GSM_NOK} GSM_CheckType;
+//data type for the return values in the GSM manager
+typedef enum {GSM_OK = 0, GSM_NOK, GSM_BSY} GSM_CheckType;
 
-//--------------------------------------------------------------------------------
 
+//--------------------------------------------------------------------------------------
 //a pointer to a call back function data type
-typedef void (*GSM_CallBackFn)(GSM_CheckType, uint8_t*, uint16_t*);
+typedef void (*GSM_CallBackFnType)(void);
 
-//--------------------------------------------------------------------------------
 
-//structure to be filled by the user to configure the GSM
+//--------------------------------------------------------------------------------------
+
+//structure to be filled by the user to configure the GSM manager
+
 typedef struct
 {
-        /*Uart Channel number*/
-        uint8_t UartChannelId;
+	/*GSM power key Group ID*/
+	uint8_t PWRKeyGroupId;
+	/*pin mask of the power key in the selected GPIO group*/
+	uint16_t PWRKeyPinMask;
 
-        /*a pointer to a call back function*/
-        GSM_CallBackFn GSM_CallBackFnPtr;
+	/*GSM ready to send Group ID*/
+	uint8_t RTSGroupId;
+	/*pin mask of the RTS in the selected GPIO group*/
+	uint16_t RTSPinMask;
+
+	/*GSM Ring Group ID*/
+	uint8_t RingGroupId;
+	/*pin mask of the Ring in the selected GPIO group*/
+	uint16_t RingPinMask;
+
+	/*a pointer to a buffer to hole the received message for the client to read*/
+	uint8_t* ReadMsgBuffer;
+	/*a variable to indicate the expected length of the received message*/
+	uint8_t ReadMsgLength;
+
+	/*a pointer to the send message callback function*/
+	GSM_CallBackFnType SendMsgCallBackFn;
+
+	/*a pointer to the received message callback function*/
+	GSM_CallBackFnType RecieveMsgCallBackFn;
+
+	/*a pointer to the error callback function*/
+	GSM_CallBackFnType ErrorCallBackFn;
 
 }GSM_ConfigType;
 
 //------------------------------------------------------------------------------
 
-//extern constant array of GSM_ConfigType structure of the GSM groups
+//extern constant GSM_ConfigType structure of the GSM manager 
 extern const GSM_ConfigType GSM_ConfigParam;
+
 
 /***********************************************************************************
 **********                      Functions prototypes                        ********
 ***********************************************************************************/
 
-//----------------------------- UART call back functions --------------------------
+//----------------------------- GSM driver back function --------------------------
 
 /*
- * This function callback function for the GSM UART TX
+ * This function callback function for the GSM driver it is called when the AT command execution is done  
+ * Inputs:
+ *		- GSM_Check 		: to indicate the success of the AT command execution
+ *		- RecievedResponse 	: a pointer to an array to hold the response from the module to the AT command
+ *		- ResponseLength 	: the length of the RecievedResponse
+ * Output:NONE
+*/
+
+void GSM_DriverCallBackFn(GSM_DriverCheckType GSM_DriverCheck, uint8_t* ReceivedResponse, uint8_t ReceivedResponseLength);
+
+
+//--------------------------------- manager functions ---------------------------
+
+
+/*
+ * This function is used to initialize the flags for the functions called by the client 
  * Inputs:NONE
  * Output:NONE
 */
 
-void GSM_Tx_CallBackFn(void);
+void GSM_Init(void);
 
 /*
- * This function callback function for the GSM UART RX
- * Inputs:NONE
+ * This function is used to reset the defaults of the module
+ *Inputs:NONE
  * Output:NONE
 */
 
-void GSM_Rx_CallBackFn(void);
-
-
-//---------------------------- AT commands functions ------------------------------
+void GSM_SoftWareReset(void);
 
 /*
- * This function used to establish the communication with the GSM module
+ * This function is used to restart the module
  *Inputs:NONE
- * Output:
-         - an indication of the success of the function
+ * Output:NONE
 */
 
-GSM_CheckType GSM_ATCommand_AT(void);
+void GSM_HardWareReset(void);
 
 /*
- * This function used to stop echoing the commands from GSM module
- *Inputs:NONE
- * Output:
-         - an indication of the success of the function
-*/
-
-GSM_CheckType GSM_ATCommand_StopEcho(void);
-
-/*
- * This function used to reset all parameters to default
- *Inputs:NONE
- * Output:
-         - an indication of the success of the function
-*/
-
-
-GSM_CheckType GSM_ATCommand_RstDefault(void);
-
-/*
- * This function used to set the baud rate of GSM module
- *Inputs:NONE
- * Output:
-         - an indication of the success of the function
-*/
-
-GSM_CheckType GSM_ATCommand_BRFix(void);
-
-/*
- * This function used to delete all sms messages on the GSM module
- *Inputs:NONE
- * Output:
-         - an indication of the success of the function
-*/
-
-GSM_CheckType GSM_ATCommand_DeleteSMS(void);
-
-/*
- * This function used to set the sms format of GSM module
+ * This function is used to send an SMS from GSM module
  *Inputs:
-         - Mode		: the sms format (PDU, TEXT)
- * Output:
-         - an indication of the success of the function
+ *		- Msg 			: a pointer the SMS message + (Ctrl+Z) or (ascii: 26)
+ *		- MsgLengrh	: the length of the SMS message + 1 (Ctrl+Z)
+ *		- PhoneNum		: a pointer to the phone number to send the SMS
+ * Output:NONE
 */
 
-GSM_CheckType GSM_ATCommand_SMSFormat(uint8_t Mode);
+void GSM_Send_SMS(uint8_t* Msg, uint8_t MsgLength, uint8_t* PhoneNum);
 
 /*
- * This function used to set character set of GSM module
+ * This function is a FSM to manage the on going operations of the GSM module
  *Inputs:NONE
  * Output:
-         - an indication of the success of the function
+ *		- an indication of the success of the function
 */
 
-GSM_CheckType GSM_ATCommand_CharSet(void);
-
-/*
- * This function used to send an SMS from GSM module
- *Inputs:
-         - PhoneNum		: a pointer to the phone number to send the SMS
- * Output:
-         - an indication of the success of the function
-*/
-
-GSM_CheckType GSM_ATCommand_SetSMSMobNum(uint8_t* PhoneNum);
-
-/*
- * This function used to send an SMS from GSM module
- *Inputs:
-         - Msg 			: a pointer the SMS message + (Ctrl+Z) or (ascii: 26)
-         - MsgLengrh	: the length of the SMS message + 1 (Ctrl+Z)
- * Output:
-         - an indication of the success of the function
-*/
-
-GSM_CheckType GSM_ATCommand_SetSMSWriteMsg(uint8_t* Msg, uint8_t MsgLength);
-
-/*
- * This function used to check if there is SMS message in index 1 
- *Inputs:NONE
- * Output:
-         - an indication of the success of the function
-*/
-
-GSM_CheckType GSM_ATCommand_CheckRecievedSMS(void);
-
-/*
- * This function used to read the SMS message in index 1  
- *Inputs:
- 		- MsgLengrh	: the length of the expected SMS message 
- * Output:
-         - an indication of the success of the function
-*/
-
-GSM_CheckType GSM_ATCommand_ReadSMS(uint8_t MsgLength);
-
-
+void GSM_ManageOngoingOperation(void);
 
 /**************************************************************************************/
 
