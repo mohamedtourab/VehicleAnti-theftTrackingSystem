@@ -161,7 +161,7 @@ void GPS_ManagOnGoingOperation(void)
 					// change the state to be GPS_IDLE
 					State = GPS_IDLE;
 				}
-				else{;/*MISRA*/}
+				else{;/*Finish the required initialization sequence*/}
 			}
 			// increment counter till reach RequiredDelay
 			Counter++;
@@ -179,7 +179,7 @@ void GPS_ManagOnGoingOperation(void)
 				// change the state to be GPS_WAIT
 				State = GPS_WAIT;
 			}
-			else{;/*MISRA*/}
+			else{;/*Stay in IDLE state as the user did not require a reception from GPS module*/}
 		}
 		break;
 		// if Wait
@@ -193,7 +193,7 @@ void GPS_ManagOnGoingOperation(void)
 				// change the state to be GPS_PARSE
 				State = GPS_PARSE;
 			}
-			else{;/*MISRA*/}
+			else{;/*Stay in wait state as the GPS module still receives data*/}
 		}
 		break;
 		// if Parse
