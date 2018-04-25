@@ -16,10 +16,11 @@
 *			. pointer to function to be executed when GPS data is invalid or error ocuured.
 *		- User should call GPS_Init function to initialize all flags and states.
 *		- User call Start Read once when he need to start read GPS data.
+*		- If the user requests new reception whiule the old one is not finished the function return BUSY
 *		- GPS_ManageOngoingOperation function should be called periodically till-
-*		  it return GPS_Ok and execute the Found call back function defined-
+*		  it execute the Found call back function defined-
 *		  in GPS_ConfigType structure.if the data of GPS is invalid data this function-
-*		  return GPS_NOk and execute the error call back function defined in GPS_ConfigType structure
+*		  return execute the error call back function defined in GPS_ConfigType structure
 *		- User should define a variable from type location in which the GPS_Location will be stored when-
 *		  Passing its address to the function GetData after GPS_ManageOngoingOperation function return OK.
 *		- GPS_ReceptionCallBack function is the RxCallBack Function that should be defined-
@@ -33,7 +34,11 @@
 
 
 // The required delay in the initialization sequence
-#define RequiredDelay	(100/CyclicTime)
+#define REQUIREDDELAY		(100/CyclicTime)
+// extra delay at the first reading 
+#define MAXRECEPTIONDELAY	(500/CyclicTime)
+// GPS Module Update its reading each 3 second
+#define UPDATETIME			(3000/CyclicTime)
 
 /*************************************************************************
 **********			Global Variables definetion					**********
@@ -57,10 +62,13 @@ static uint8_t ReceptionDoneFlag;
 static Location ParsedData;
 
 // cunter to count the number of Managing function calls to handle delay needed in the initialization sequence
-static uint8_t Counter;
+static uint16_t Counter;
 
 // Buffer in which we store the data we read from GPS
 static uint8_t GPS_Data[768];
+
+// Flag to check the first valid data (to overcome the invalid period in the start)
+static uint8_t StartFlag;
 /*-----------------------------------------------------------------------------------------------------------*/
 
 /*************************************************************************
@@ -89,15 +97,30 @@ void GPS_Init(void)
 	}
 	// initialize counter
 	Counter = 0;
+	StartFlag = 0;
 }
 
 /*
  * This function is used to set flag which indicates that user need to start reception form GPS
+ * The function return busy if there is a request to start new reception while an old reception has not finished
 */
-void StartRead(void)
+GPS_CheckType StartRead(void)
 {
-	// set the start reception flag
-	StartReceptionFlag = 1;
+	GPS_CheckType RetVar;
+	// check if there is reception inprogress or no
+	if (StartReceptionFlag == 0)
+	{
+		// set the start reception flag
+		StartReceptionFlag = 1;
+		// return ok
+		RetVar = GPS_OK;
+	}
+	else
+	{
+		// return busy
+		RetVar = GPS_BUSY;
+	}
+	return RetVar;
 }
 
 /*
@@ -154,12 +177,17 @@ void GPS_ManagOnGoingOperation(void)
 			}
 			else
 			{
-				if (Counter == (RequiredDelay))
+				if (Counter >= (REQUIREDDELAY))
 				{
 					// write '1' on RST pin
 					GPIO_Write((GPS_Ptr->RST_ChannelId),(GPS_Ptr->RstPinMask),HIGH);
-					// change the state to be GPS_IDLE
-					State = GPS_IDLE;
+					// wait an additional delay to start reception from GPS
+					if (Counter == (REQUIREDDELAY + MAXRECEPTIONDELAY))
+					{
+						Counter = 0;
+						// change the state to be GPS_IDLE
+						State = GPS_IDLE;
+					}
 				}
 				else{;/*Finish the required initialization sequence*/}
 			}
@@ -185,15 +213,31 @@ void GPS_ManagOnGoingOperation(void)
 		// if Wait
 		case GPS_WAIT:
 		{
-			// check the ReceptionDoneFlag which indicates that reception of 768 finished
-			// if '1'
-			if (ReceptionDoneFlag == 1)
+			// Check if the GPS module does not receive data for the defined update time,
+			// in case of not receiving change state to be error
+			if (Counter <= UPDATETIME)
 			{
-				ReceptionDoneFlag = 0;
-				// change the state to be GPS_PARSE
-				State = GPS_PARSE;
+				// check the ReceptionDoneFlag which indicates that reception of 768 finished
+				// if '1'
+				if (ReceptionDoneFlag == 1)
+				{
+					Counter = 0;
+					ReceptionDoneFlag = 0;
+					// change the state to be GPS_PARSE
+					State = GPS_PARSE;
+				}
+				else{;/*Stay in wait state as the GPS module still receives data*/}
 			}
-			else{;/*Stay in wait state as the GPS module still receives data*/}
+			else
+			{
+				// Stop the current reception
+				UART_StopCrntReception(GPS_Ptr->UART_ChannelId);
+				// clear the counter
+				Counter = 0;
+				// Change State to be GPS_ERROR
+				State = GPS_ERROR;
+			}
+			Counter++;
 		}
 		break;
 		// if Parse
@@ -333,30 +377,67 @@ void GPS_ManagOnGoingOperation(void)
 					// check if we get the valid longitude and latitude or not
 					if (LongitudeFlag && LatitudeFlag)
 					{
+						// Clear StartReceptionFlag to indicate that reception finished and module ready to receive ne request
+						StartReceptionFlag = 0;
+						// Set the StartFlag
+						StartFlag = 1;
 						// execute call back function
 						GPS_Ptr->FoundCallBack();
 						// change the state to be IDLE
 						State = GPS_IDLE;
 					}
-					else
+					// if the data is invalid but module was read a valid data before
+					else if (StartFlag == 1)
 					{
 						// change the state to be error
 						State = GPS_ERROR;
+					}
+					// if the module does not read any valid data
+					// this case as the module read invalid data form some time after reseting
+					// so we do not need to report that as an error 
+					else
+					{
+						// Change the state to be IDLE to receive new frames
+						State = GPS_IDLE;
 					}
 
 				}
 				// else
 				else
 				{
-					// Change the state to be Error
-					State = GPS_ERROR;
+					// if the data is invalid but module was read a valid data before
+					if (StartFlag == 1)
+					{
+						// change the state to be error
+						State = GPS_ERROR;
+					}
+					// if the module does not read any valid data
+					// this case as the module read invalid data form some time after reseting
+					// so we do not need to report that as an error 
+					else
+					{
+						// Change the state to be IDLE to receive new frames
+						State = GPS_IDLE;
+					}
 				}
 			}
 			//else
 			else
 			{
-				// Change the state to be Error
-				State = GPS_ERROR;
+				// if the data is invalid but module was read a valid data before
+				if (StartFlag == 1)
+				{
+					// change the state to be error
+					State = GPS_ERROR;
+				}
+				// if the module does not read any valid data
+				// this case as the module read invalid data form some time after reseting
+				// so we do not need to report that as an error 
+				else
+				{
+					// Change the state to be IDLE to receive new frames
+					State = GPS_IDLE;
+				}
 			}
 		}
 		break;

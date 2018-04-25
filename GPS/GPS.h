@@ -42,6 +42,9 @@
 /*Call back function to be executed after parsing*/
 typedef void (*GPS_CallBackFn)(void);
 
+// enum for the return value of functions either Ok or BUSY
+typedef enum {GPS_OK = 0, GPS_BUSY = 1}GPS_CheckType;
+
 /*Structure to get the Configuration Parameters of GPS_Module*/
 typedef struct 
 {
@@ -78,8 +81,9 @@ void GPS_Init(void);
 
 /*
  * This function is used to set flag which indicates that user need to start reception form GPS
+ * The function return busy if there is a request to start new reception while an old reception has not finished
 */
-void StartRead(void);
+GPS_CheckType StartRead(void);
 
 /*
  * This function is used to get the readings of the GPS (Longitude and Latitude)
