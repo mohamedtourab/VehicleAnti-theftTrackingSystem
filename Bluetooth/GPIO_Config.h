@@ -12,6 +12,6 @@
 #define GPIO_CONFIG_H
 
 /* A configuration to the number of GPIO groups*/
-#define GPIO_NUMBER_OF_GROUPS 6U
+#define GPIO_NUMBER_OF_GROUPS 8U
 
 #endif

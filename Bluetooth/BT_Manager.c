@@ -1,9 +1,9 @@
 /*
  *
- *	Authors: Wessam Adel and Mohamed Mamdouh
- *	Date: 13/3/2018
+ *        Authors: Wessam Adel and Mohamed Mamdouh
+ *        Date: 13/3/2018
  *  Last Edited: 18/3/2018
- *	Microcontroller: STM32F407VG
+ *        Microcontroller: STM32F407VG
  *  Description: This File contains the Bluetooth Initialization and Configuration, and it needs around 700 ms to be finished
 */
 
@@ -11,7 +11,7 @@
 
 static uint8_t TransmissionDone;
 static uint8_t ReceptionDone;
-
+static uint8_t FunctionCalled;
 
 /*
  ****************************************************************************** 
@@ -27,6 +27,7 @@ void BT_Init(void)
 {
     TransmissionDone = 0;
     ReceptionDone    = 0;
+    FunctionCalled = 0;
 }
 
 
@@ -148,13 +149,13 @@ BT_CheckType BT_Configure(void)
         case SET_NO_AUTHENTICATION:
         {
 
-        UART_StartSilentTransmission("SA,0\r",5,0);
+        UART_StartSilentTransmission("SA,1\r",5,0);
             OldState = State;
             State = CHECK_TRANSMISSION_DONE;
         }
         break;
 
-        case SET_SCAN_TIME_SI:
+        /*case SET_SCAN_TIME_SI:
         {
             UART_StartSilentTransmission("SI,0800\r",8,0);
             OldState = State;
@@ -168,7 +169,7 @@ BT_CheckType BT_Configure(void)
             OldState = State;
             State = CHECK_TRANSMISSION_DONE;
         }
-        break;
+        break;*/
         case DISABLE_REMOTE_CONFIGURATION:
         {
             UART_StartSilentTransmission("ST,0\r",5,0);
@@ -184,6 +185,7 @@ BT_CheckType BT_Configure(void)
             State = CHECK_TRANSMISSION_DONE;
         }
         break;
+        
         case REBOOT:
         {
 
@@ -207,6 +209,10 @@ BT_CheckType BT_Configure(void)
 
     return RetVal;
 }
+
+
+
+
 
 /*
  ****************************************************************************** 
@@ -284,3 +290,81 @@ BT_Response MemoryCompare(unsigned char * AT_Command, uint8_t Length)
     }
     return RetVal;
 }
+
+/*
+ ****************************************************************************** 
+ *                                                                            *      
+ *                                                                            *      
+ *                        Get Data Function                                   *  
+ *                                                                            *  
+ *                                                                            *  
+ ******************************************************************************
+ */
+
+ BT_CheckType BT_GetData(char* DataReceived,uint8_t NoOfBytes)
+ {
+	 BT_CheckType RetVal;
+	 static BT_DataStates state = BT_IDLE;
+	 switch(state)
+	 {
+		 case BT_IDLE:
+		 {
+			 UART_StartSilentReception(DataReceived,NoOfBytes,0);
+			 state = BT_BUSY;
+			 RetVal = BT_NOK;
+		 }
+		 break;
+		 case BT_BUSY:
+		 {
+			UART_ManageOngoingOperation(0);
+			if(ReceptionDone == 1)
+			{
+				state = BT_IDLE;
+				ReceptionDone = 0;
+				RetVal = BT_OK;
+			}
+			else
+			{
+				state = BT_BUSY;
+				RetVal = BT_NOK;
+			}
+		 }
+		 break;
+	 }
+	 return RetVal;
+ }
+
+ BT_CheckType BT_SendData(char* DataSent, uint8_t NoOfBytes)
+  {
+	 BT_CheckType RetVal;
+	 static BT_DataStates state = BT_IDLE;
+	 switch(state)
+	 {
+		 case BT_IDLE:
+		 {
+			UART_StartSilentTransmission(DataSent,NoOfBytes,0);
+			state = BT_BUSY;
+			RetVal = BT_NOK;
+			TransmissionDone = 0;
+		 }
+		 break;
+		 case BT_BUSY:
+		 {
+			UART_ManageOngoingOperation(0);
+			if(TransmissionDone == 1)
+			{
+				state = BT_IDLE;
+				TransmissionDone = 0;
+				RetVal = BT_OK;
+			}
+			else
+			{
+				state = BT_BUSY;
+				RetVal = BT_NOK;
+			}
+		 }
+		 break;
+	 }
+	 return RetVal;
+ }
+
