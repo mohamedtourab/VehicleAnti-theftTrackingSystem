@@ -50,6 +50,24 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
         DEFAULT, //set the output speed to the defalt value
         DEFAULT  //set the pullup pulldown to the defalt value
     },
+	{
+                //set portA as an altirnative function
+        PORT_GPIOD, // the choosen port
+        PIN_MASK_4, // sellect the pin number of the port (10)
+        MODE_OUTPUT, //set the mode to alternative function
+        DEFAULT, //set the output type to the defalt value
+        DEFAULT, //set the output speed to the defalt value
+        DEFAULT  //set the pullup pulldown to the defalt value
+    },
+    {
+                //set portA as an altirnative function
+        PORT_GPIOD, // the choosen port
+        PIN_MASK_5, // sellect the pin number of the port (10)
+        MODE_OUTPUT, //set the mode to alternative function
+        DEFAULT, //set the output type to the defalt value
+        DEFAULT, //set the output speed to the defalt value
+        DEFAULT  //set the pullup pulldown to the defalt value
+    },
     {
         //set portA as an altirnative function
         PORT_GPIOD, // the choosen port
