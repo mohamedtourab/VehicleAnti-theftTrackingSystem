@@ -155,7 +155,6 @@ static void ELM327_ATCMD_Stop(void);
  * Output:
  *		- an indication of the success of the function
 */
-
 static GSM_DriverCheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint8_t Length);
 
 
@@ -183,11 +182,11 @@ static uint8_t ReadBatterStateFlag;	//flag to change the state to read battery s
 static uint8_t HelperState;		//to set the state of the helper functions
 static uint8_t ManageState;		//set the state of Manager function
 
-static uint16_t MaximumResponseTimeCounter;
+static uint16_t MaximumResponseTimeCounter;		//counter used to break from waiting response if the response time exceeds a certain limit
 
-static int16_t* Global_VehicleSpeed;
-static int16_t* Global_VehicleRPM;
-static uint8_t* Global_BatteryState;
+static int16_t* Global_VehicleSpeed;	//global variable used to hold the vehicle speed sent by user
+static int16_t* Global_VehicleRPM;		//global variable used to hold the vehicle RPM sent by user
+static uint8_t* Global_BatteryState;	//global variable used to hold the vehicle battery state sent by user
 
 /***********************************************************************************
 **********				GSM  Driver functions' bodies                      ********
@@ -199,7 +198,6 @@ static uint8_t* Global_BatteryState;
  * Inputs:NONE
  * Output:NONE
 */
-
 void GSM_Init(void)
 {
 	ReceiveDoneFlag = 0;
@@ -210,11 +208,12 @@ void GSM_Init(void)
 	Read_RPM_Flag = 0;
 	ReadBatterStateFlag = 0;
 
-	HelperState = 0;
-	ManageState = 0;
+	HelperState = SEND_CMD;
+	ManageState = ELM327_MANAGE_UNINIT;
 
 	MaximumResponseTimeCounter = 0;
 }
+
 
 /*
  * This function is used to Reset to defaults
@@ -222,16 +221,15 @@ void GSM_Init(void)
  * Output:
  			-indication of success of the function
 */
-
 ELM327_CheckType ELM327_ResetDefaults(void)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
-	if(ResetDefualtsFlag == 0)
+	if(ResetDefualtsFlag == 0)	//check if the flag is raised already
 	{
-		ResetDefualtsFlag = 1;
+		ResetDefualtsFlag = 1;	//rise the flag
 
-		RetVar = ELM327_OK;
+		RetVar = ELM327_OK;		//return ok if the flag is raised
 	}
 	else
 	{
@@ -252,13 +250,13 @@ ELM327_CheckType ELM327_ReadSpeed(int16_t* VehicleSpeed)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
-	if(ReadSpeedFlag == 0)
+	if(ReadSpeedFlag == 0)						//check if the flag is raised already
 	{
-		Global_VehicleSpeed = VehicleSpeed;
+		Global_VehicleSpeed = VehicleSpeed;		//assign the global pointer with the value sent by user
 
-		ReadSpeedFlag = 1;
+		ReadSpeedFlag = 1;						//rise the flag
 
-		RetVar = ELM327_OK;
+		RetVar = ELM327_OK;						//return ok if the flag is raised
 	}
 	else
 	{
@@ -280,13 +278,13 @@ ELM327_CheckType ELM327_Read_RPM(int16_t* VehicleRPM)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
-	if(Read_RPM_Flag == 0)
+	if(Read_RPM_Flag == 0)					//check if the flag is raised already
 	{
-		Global_VehicleRPM = VehicleRPM;
+		Global_VehicleRPM = VehicleRPM;		//assign the global pointer with the value sent by user
 
-		Read_RPM_Flag = 1;
+		Read_RPM_Flag = 1;					//rise the flag
 
-		RetVar = ELM327_OK;
+		RetVar = ELM327_OK;					//return ok if the flag is raised
 	}
 	else
 	{
@@ -295,6 +293,8 @@ ELM327_CheckType ELM327_Read_RPM(int16_t* VehicleRPM)
 
 	return RetVar;
 }
+
+
 
 /*
  * This function is used to Read the state of the battery
@@ -306,13 +306,13 @@ ELM327_CheckType ELM327_ReadBatteryState(uint8_t* BatteryState)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
-	if(ReadBatterStateFlag == 0)
+	if(ReadBatterStateFlag == 0)				//check if the flag is raised already
 	{
-		Global_BatteryState = BatteryState;
+		Global_BatteryState = BatteryState;		//assign the global pointer with the value sent by user
 
-		ReadBatterStateFlag = 1;
+		ReadBatterStateFlag = 1;				//rise the flag	
 
-		RetVar = ELM327_OK;
+		RetVar = ELM327_OK;						//return ok if the flag is raised
 	}
 	else
 	{
@@ -323,6 +323,7 @@ ELM327_CheckType ELM327_ReadBatteryState(uint8_t* BatteryState)
 }
 
 
+
 /*
  * This function is a FSM to manage the on going operations of the GSM module
  *Inputs:NONE
@@ -331,7 +332,6 @@ ELM327_CheckType ELM327_ReadBatteryState(uint8_t* BatteryState)
 void GSM_ManageOngoingOperation(void)
 {
 	ELM327_CheckType ELM327_Check = ELM327_BUSY;					//variable to indicate the success of the command
-	const ELM327_ConfigType* ConfigPtr = &ELM327_ConfigParam;	//declare a pointer to structure of the ELM327_ConfigType
 
 	switch(ManageState)
 	{
@@ -339,17 +339,21 @@ void GSM_ManageOngoingOperation(void)
 		{
 			ELM327_Check = ResetDefaults();
 
-			if(ELM327_Check == ELM327_OK)
+			if(ELM327_Check == ELM327_OK)			//in this case the module response is as expected 
 			{
-				ResetDefualtsFlag = 0;
-				ManageState = ELM327_MANAGE_IDLE;
-				HelperState = SEND_CMD;
+				ResetDefualtsFlag = 0;				//clear the flag
+
+				ManageState = ELM327_MANAGE_IDLE;	//go to idle state
+
+				HelperState = SEND_CMD;				//return back the helper state to it's initilized state
 			}
-			else if(ELM327_Check == ELM327_NOK)
+			else if(ELM327_Check == ELM327_NOK)		//in this case the module response is not as expected 
 			{
-				ResetDefualtsFlag = 0;
-				ManageState = ELM327_MANAGE_ERROR;
-				HelperState = SEND_CMD;				
+				ResetDefualtsFlag = 0;				//clear the flag
+
+				ManageState = ELM327_MANAGE_ERROR;	//go to error state
+
+				HelperState = SEND_CMD;				//return back the helper state to it's initilized state
 			}
 			else
 			{
@@ -360,6 +364,7 @@ void GSM_ManageOngoingOperation(void)
 
 		case ELM327_MANAGE_IDLE :
 		{
+			/*check for flags in priority battern*/
 			if(ResetDefualtsFlag == 1)
 			{
 				ManageState = ELM327_MANAGE_UNINIT;
@@ -385,18 +390,22 @@ void GSM_ManageOngoingOperation(void)
 
 		case ELM327_MANAGE_READ_SPEED :
 		{
-			ELM327_Check = ReadSpeed(ConfigPtr->VehicleSpeed);
+			ELM327_Check = ReadSpeed();
 
 			if(ELM327_Check == ELM327_OK)
 			{
 				ReadSpeedFlag = 0;
+
 				ManageState = ELM327_MANAGE_IDLE;
+
 				HelperState = SEND_CMD;
 			}
 			else if(ELM327_Check == ELM327_NOK)
 			{
 				ReadSpeedFlag = 0;
+
 				ManageState = ELM327_MANAGE_ERROR;
+
 				HelperState = SEND_CMD;				
 			}
 			else
@@ -408,18 +417,22 @@ void GSM_ManageOngoingOperation(void)
 
 		case ELM327_MANAGE_READ_RPM :
 		{
-			ELM327_Check = Read_RPM(ConfigPtr->VehicleRPM);
+			ELM327_Check = Read_RPM();
 
 			if(ELM327_Check == ELM327_OK)
 			{
 				Read_RPM_Flag = 0;
+
 				ManageState = ELM327_MANAGE_IDLE;
+
 				HelperState = SEND_CMD;
 			}
 			else if(ELM327_Check == ELM327_NOK)
 			{
 				Read_RPM_Flag = 0;
+
 				ManageState = ELM327_MANAGE_ERROR;
+
 				HelperState = SEND_CMD;				
 			}
 			else
@@ -431,18 +444,22 @@ void GSM_ManageOngoingOperation(void)
 
 		case ELM327_MANAGE_READ_BATTERY_STATE :
 		{
-			ELM327_Check = ReadBatteryState(ConfigPtr->BatteryState);
+			ELM327_Check = ReadBatteryState();
 
 			if(ELM327_Check == ELM327_OK)
 			{
 				ReadBatterStateFlag = 0;
+
 				ManageState = ELM327_MANAGE_IDLE;
+
 				HelperState = SEND_CMD;
 			}
 			else if(ELM327_Check == ELM327_NOK)
 			{
 				ReadBatterStateFlag = 0;
+
 				ManageState = ELM327_MANAGE_ERROR;
+
 				HelperState = SEND_CMD;				
 			}
 			else
@@ -467,7 +484,7 @@ void GSM_ManageOngoingOperation(void)
 
 
 /***********************************************************************************
-**********				GSM Driver UART call back functions					********
+**********				ELM327 Driver UART call back functions					********
 ***********************************************************************************/
 
 /*
@@ -525,47 +542,49 @@ void ELM327_RxCallBackFn(void)
 static ELM327_CheckType ResetDefaults(void)
 {
 	//declarations
-	ELM327_CheckType RetVar = ELM327_BUSY;						//variable to indicate the success of the AT command
+	ELM327_CheckType RetVar = ELM327_BUSY;			//variable to indicate the success of the AT command
 
 	switch(HelperState)
 	{
 		case SEND_CMD :
 		{
-			ATCMD_System_Reset();
+			ATCMD_System_Reset();					//send the command
 
-			HelperState = PROCCESS_RECEIVED_RES;
+			HelperState = PROCCESS_RECEIVED_RES;	//go to the next state
 
-			MaximumResponseTimeCounter=0;
+			MaximumResponseTimeCounter=0;			//initilize the response time counter with 0
 
 			break;
 		}
 
 		case PROCCESS_RECEIVED_RES :
 		{
-			if(ReceiveDoneFlag == 1)
+			if(ReceiveDoneFlag == 1)			//check if response is received from the module
 			{
-				ReceiveDoneFlag=0;
-				if(ReceiveSuccessFlag == 1)
+				ReceiveDoneFlag=0;				//response is received, so we clear the flag for the next use
+				
+				if(ReceiveSuccessFlag == 1)		//check if the response is received correctly
 				{
-					ReceiveSuccessFlag = 0;
-					RetVar = ELM327_OK;
+					ReceiveSuccessFlag = 0;		//response received correctly , se clear the flag
+
+					RetVar = ELM327_OK;			//return ok for the check in the main manage function
 				}
 				else
 				{
-					RetVar = ELM327_OK;
+					RetVar = ELM327_NOK;		//return not ok for the check in the main manage function
 				}
 			}
-			else
+			else 								//incase response not received yet
 			{
-				if(MaximumResponseTimeCounter<ELM327_T_EXP)
+				if(MaximumResponseTimeCounter<ELM327_T_EXP)		//if the counter is less than the expected maximum response time
 				{
-					MaximumResponseTimeCounter++;
+					MaximumResponseTimeCounter++;				//increase the counter to reach the maximum expected response time
 				}
-				else
+				else 											//in this case the counter exceeds the limits
 				{
-					MaximumResponseTimeCounter = 0 ;
-					ELM327_ATCMD_Stop();
-					RetVar = ELM327_NOK;
+					MaximumResponseTimeCounter = 0 ;	//clear the counter
+					ELM327_ATCMD_Stop();				//stop the reception
+					RetVar = ELM327_NOK;				//return not ok for the check in the main manage function
 				}
 			}
 
@@ -611,14 +630,17 @@ static ELM327_CheckType ReadSpeed(void)
 			if(ReceiveDoneFlag == 1)
 			{
 				ReceiveDoneFlag=0;
+
 				if(ReceiveSuccessFlag == 1)
 				{
-					if(ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] == '\r')
+					if(ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] == '\r')		//check if the vehicle started 
 					{
-						*Global_VehicleSpeed = -1;
+						/*this means that the vehicle not yet started*/
+						*Global_VehicleSpeed = -1;									//return -1 for used as indication that the car not started
 					}
-					else
+					else 															//this means the car is started (speed may = 0 [if not yet moved] , or speed > zero [started to move])
 					{
+						/*this algorithm used to convert the ASCII answer of the module to decimel numbers*/
 						if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] <= ASCII_OF_NINE))
 						{
 							*Global_VehicleSpeed = ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_ZERO;
@@ -637,24 +659,28 @@ static ELM327_CheckType ReadSpeed(void)
 							*Global_VehicleSpeed += ((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_A)+10)*16;
 						}
 					}
-					ReceiveSuccessFlag = 0;
-					RetVar = ELM327_OK;
+
+					ReceiveSuccessFlag = 0;		//reset the flag for next use
+
+					RetVar = ELM327_OK;			//return ok for manager check
 				}
 				else
 				{
-					RetVar = ELM327_OK;
+					RetVar = ELM327_NOK;		//return not ok for the manager check
 				}
 			}
 			else
 			{
-				if(MaximumResponseTimeCounter<ELM327_T_EXP)
+				if(MaximumResponseTimeCounter<ELM327_T_EXP)		//check for expiration time 
 				{
 					MaximumResponseTimeCounter++;
 				}
 				else
 				{
 					MaximumResponseTimeCounter = 0 ;
+
 					ELM327_ATCMD_Stop();
+
 					RetVar = ELM327_NOK;
 				}
 			}
@@ -700,14 +726,17 @@ static ELM327_CheckType Read_RPM(void)
 			if(ReceiveDoneFlag == 1)
 			{
 				ReceiveDoneFlag=0;
+
 				if(ReceiveSuccessFlag == 1)
 				{
-					if(ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] == '\r')
+					if(ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] == '\r')			//check if the vehicle started
 					{
-						*Global_VehicleRPM = -1;
+						/*means vehicle not started yet*/
+						*Global_VehicleRPM = -1;			//retun -1 as indication of not started
 					}
 					else
 					{
+						/*means that the vehicle already started */
 						if((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] <= ASCII_OF_NINE))
 						{
 							*Global_VehicleRPM = ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1]-ASCII_OF_ZERO;
@@ -729,11 +758,12 @@ static ELM327_CheckType Read_RPM(void)
 						*Global_VehicleRPM <<= 6;	//equation from data sheet to estimate the RPM from output parameters
 					}
 					ReceiveSuccessFlag = 0;
+
 					RetVar = ELM327_OK;
 				}
 				else
 				{
-					RetVar = ELM327_OK;
+					RetVar = ELM327_NOK;
 				}
 			}
 			else
@@ -745,7 +775,9 @@ static ELM327_CheckType Read_RPM(void)
 				else
 				{
 					MaximumResponseTimeCounter = 0 ;
+
 					ELM327_ATCMD_Stop();
+
 					RetVar = ELM327_NOK;
 				}
 			}
@@ -791,14 +823,17 @@ static ELM327_CheckType ReadBatteryState(void)
 			if(ReceiveDoneFlag == 1)
 			{
 				ReceiveDoneFlag=0;
+
 				if(ReceiveSuccessFlag == 1)
 				{
-					if(ReceivedResponse[BATTERY_STATE_RRES_LENGTH-1] == '\r')
+					if(ReceivedResponse[BATTERY_STATE_RRES_LENGTH-1] == '\r')		//check if the device is connected to the car
 					{
+						/*means that the device is connected*/
 						*Global_BatteryState = 0;	//indication that the device is not connected
 					}
 					else
 					{
+						/*means that the device is not connected to the car*/
 						*Global_BatteryState = 1;	//indication that the device is connected
 					}
 					ReceiveSuccessFlag = 0;
@@ -818,7 +853,9 @@ static ELM327_CheckType ReadBatteryState(void)
 				else
 				{
 					MaximumResponseTimeCounter = 0 ;
+
 					ELM327_ATCMD_Stop();
+					
 					RetVar = ELM327_NOK;
 				}
 			}
