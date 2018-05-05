@@ -34,12 +34,25 @@ typedef enum
 }ELM327_CheckType;
 
 //------------------------------------------------------------------------------------
+/***********************************************************************************
+**********                   Configration structure                             ****
+***********************************************************************************/
+typedef void (*ELM327_CallBackFnType)(void);
 
 /*structure to be filled by the user to configure the ELM327*/
 typedef struct 
 {
 	/*UART channel Id*/
 	uint8_t UartChannelId;
+
+	/*pointer to get vehicle speed call back function*/
+	//ELM327_CallBackFnType GetVehicleSpeedCallBackFn;
+
+	/*pointer to get vehicle RPM call back function*/
+	//ELM327_CallBackFnType GetVehicleRPMCallBackFn;
+
+	/*pointer to get vehicle battery state call back function*/
+	//ELM327_CallBackFnType GetVehicleBatteryStateCallBackFn;
 
 }ELM327_ConfigType;
 
@@ -55,7 +68,7 @@ extern const ELM327_ConfigType ELM327_ConfigParam;
  * Inputs:NONE
  * Output:NONE
 */
-void GSM_Init(void);
+void ELM327_Init(void);
 
 
 /*
@@ -73,7 +86,7 @@ ELM327_CheckType ELM327_ResetDefaults(void);
  * Output:
  			-indication of success of the function
 */
-ELM327_CheckType ELM327_ReadSpeed(int16_t* VehicleSpeed);
+ELM327_CheckType ELM327_GetVehicleSpeed(int16_t* VehicleSpeed);
 
 
 /*
@@ -82,7 +95,7 @@ ELM327_CheckType ELM327_ReadSpeed(int16_t* VehicleSpeed);
  * Output:
  			-indication of success of the function
 */
-ELM327_CheckType ELM327_Read_RPM(int16_t* VehicleRPM);
+ELM327_CheckType ELM327_GetVehicleRPM(int16_t* VehicleRPM);
 
 
 /*
@@ -91,15 +104,15 @@ ELM327_CheckType ELM327_Read_RPM(int16_t* VehicleRPM);
  * Output:
  			-indication of success of the function
 */
-ELM327_CheckType ELM327_ReadBatteryState(uint8_t* BatteryState);
+ELM327_CheckType ELM327_GetVehicleBatteryState(uint8_t* BatteryState);
 
 
 /*
- * This function is a FSM to manage the on going operations of the GSM module
+ * This function is a FSM to manage the on going operations of the OBD module
  *Inputs:NONE
  * Output:NONE
 */
-void GSM_ManageOngoingOperation(void);
+void ELM327_ManageOngoingOperation(void);
 
 
 #endif
