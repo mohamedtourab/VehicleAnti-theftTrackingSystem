@@ -155,7 +155,7 @@ static void ELM327_ATCMD_Stop(void);
  * Output:
  *		- an indication of the success of the function
 */
-static GSM_DriverCheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint8_t Length);
+static ELM327_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint8_t Length);
 
 
 
@@ -198,7 +198,7 @@ static uint8_t* Global_BatteryState;	//global variable used to hold the vehicle 
  * Inputs:NONE
  * Output:NONE
 */
-void GSM_Init(void)
+void ELM327_Init(void)
 {
 	ReceiveDoneFlag = 0;
 	ReceiveSuccessFlag = 0;
@@ -246,7 +246,7 @@ ELM327_CheckType ELM327_ResetDefaults(void)
  * Output:
  			-indication of success of the function
 */
-ELM327_CheckType ELM327_ReadSpeed(int16_t* VehicleSpeed)
+ELM327_CheckType ELM327_GetVehicleSpeed(int16_t* VehicleSpeed)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
@@ -274,7 +274,7 @@ ELM327_CheckType ELM327_ReadSpeed(int16_t* VehicleSpeed)
  * Output:
  			-indication of success of the function
 */
-ELM327_CheckType ELM327_Read_RPM(int16_t* VehicleRPM)
+ELM327_CheckType ELM327_GetVehicleRPM(int16_t* VehicleRPM)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
@@ -302,7 +302,7 @@ ELM327_CheckType ELM327_Read_RPM(int16_t* VehicleRPM)
  * Output:
  			-indication of success of the function
 */
-ELM327_CheckType ELM327_ReadBatteryState(uint8_t* BatteryState)
+ELM327_CheckType ELM327_GetVehicleBatteryState(uint8_t* BatteryState)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
@@ -329,7 +329,7 @@ ELM327_CheckType ELM327_ReadBatteryState(uint8_t* BatteryState)
  *Inputs:NONE
  * Output:NONE
 */
-void GSM_ManageOngoingOperation(void)
+void ELM327_ManageOngoingOperation(void)
 {
 	ELM327_CheckType ELM327_Check = ELM327_BUSY;					//variable to indicate the success of the command
 
@@ -1087,7 +1087,7 @@ static ELM327_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint8_t Length)
 		if(Str1[Index] != Str2[Index])
 		{
 			//the ith chars of the two strings don't match
-			RetVar = GSM_DRIVER_NOK;
+			RetVar = ELM327_NOK;
 		}
 		else{/*the loop shall continue till till the last character in the 2 strings or finding a miss match between them*/}
 	}
