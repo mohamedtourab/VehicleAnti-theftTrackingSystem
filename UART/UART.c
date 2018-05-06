@@ -4,8 +4,8 @@
 *        Date: 18/2/2018
 *        Description:
 *                        This file contains:
-*                        - macros to access the UART register
-*                        - prototypes of functions used to access UART register
+*                        - Base Addresses of The UART peripherals
+*                        - Implementation of functions used to access UART registers
 *        Microcontroller: STM32F407VG
 ***************************************************************************************/
 #include <stdint.h>
@@ -92,7 +92,7 @@ static const IRQn_Type UART_IRQNumber[UART_MAX_NUM] =
 // calculate the address of each register and cast it to the Typedef data type (UART_RegAddType)
 // then dereference that address to be ready to write in the required register.
 // UART_ID is the index of the required UART periferal in UARTsBaseAddressLut -
-// to get the base address of the required Periferal. 
+// to get the base address of the required Peripheral. 
 #define USART_SR(UART_ID)        *((UART_RegAddType)(UARTsBaseAddressLut[UART_ID] + USART_SR_OFFSET))
 #define USART_DR(UART_ID)        *((UART_RegAddType)(UARTsBaseAddressLut[UART_ID] + USART_DR_OFFSET))
 #define USART_BRR(UART_ID)        *((UART_RegAddType)(UARTsBaseAddressLut[UART_ID] + USART_BRR_OFFSET))
