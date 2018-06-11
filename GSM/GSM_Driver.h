@@ -126,6 +126,8 @@ GSM_DriverCheckType GSM_Driver_ATCMD_FixBR(void);
  *	- an indication of the success of the function
 */
 
+/************************************************************************************/
+
 GSM_DriverCheckType GSM_Driver_ATCMD_DeleteSMS(void);
 
 /*
@@ -186,6 +188,150 @@ GSM_DriverCheckType GSM_Driver_ATCMD_CheckReceivedSMS(void);
 */
 
 GSM_DriverCheckType GSM_Driver_ATCMD_ReadSMS(uint8_t MsgLength);
+
+/********************************************************************************************/
+/*
+ * This function used to set the APN for the GPRS Servies provider
+ *Inputs:
+ *	- ServiceProviderAPN 	: a pointer to the APN array 
+ *	- ServiceProviderAPNLength	: the length of the APN
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_GPRS_APN(uint8_t* ServiceProviderAPN, uint8_t ServiceProviderAPNLength);
+
+/*
+ * This function used to ativate the GPRS
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_GPRS_Activate(void);
+
+/*
+ * This function used to attach the GSM to the GPRS network
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_GPRS_Attach(void);
+
+/************************************************************************************************************/
+
+/*
+ * This function used to set the information for the TCP Servies provider
+ *Inputs:
+ *	- ServiceProviderAPN 	: a pointer to the APN array 
+ *	- ServiceProviderAPNLength	: the length of the APN
+ *	- ServiceProviderUserName 	: a pointer to the user name array 
+ *	- ServiceProviderUserNameLength	: the length of the user name
+ *	- ServiceProviderPassWord 	: a pointer to the password array 
+ *	- ServiceProviderPassWordLength	: the length of the password
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SP_Info(uint8_t* ServiceProviderAPN, uint8_t ServiceProviderAPNLength, uint8_t* ServiceProviderUserName, uint8_t ServiceProviderUserNameLength, uint8_t* ServiceProviderPassWord, uint8_t ServiceProviderPassWordLength);
+
+/*
+ * This function used to set the IP address and port for the  server and connect to it
+ *Inputs:
+ *	- IP_Address 	: a pointer to the IP address array 
+ *	- IP_AddressLength	: the length of the IP address
+ *	- PortNum 	: a pointer to the port number array 
+ *	- PortNumLength	: the length of the port number
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_Connect(uint8_t* IP_Address, uint8_t IP_AddressLength, uint8_t* PortNum, uint8_t PortNumLength);
+
+/*
+ * This function used to set the TCP context
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SetContext(void);
+
+/*
+ * This function used to disable the TCP Multiplexer
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_DisableMUX(void);
+
+/*
+ * This function used to set the mode of TCP
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SetMode(void);
+
+/*
+ * This function used to set the TCP DNSIP mode
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SetDNSIP(void);
+
+/*
+ * This function used to close the TCP connection
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_Close(void);
+
+/*
+ * This function used to deactivate the TCP connection
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_Deactivate(void);
+
+/*
+ * This function used to start sending an message to a server from GSM module
+ *Inputs:NONE
+ * Output:
+ *       - an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_InitSendServerMsg(void);
+
+/*
+ * This function used to send an message to a server from GSM module
+ *Inputs:
+ *	- Msg		: a pointer the message + (Ctrl+Z) or (ascii: 26)
+ *	- MsgLengrh	: the length of the message + 1 (Ctrl+Z)
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_SendServerMsg(uint8_t* Msg, uint8_t MsgLength);
+
+
+/********************************************************************************************/
+/*
+ * This function used to Stop any inprogress at command
+ *Inputs:NONE 
+ * Output:NONE
+*/
+
+void GSM_Driver_ATCMD_Stop(void);
 
 
 

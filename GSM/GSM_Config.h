@@ -12,7 +12,8 @@
 #define GSM_CONFIG_H
 
 //the cyclic time witch the functions get called periodicly with
-#define CYCLIC_TIME 10
+#define GSM_CYCLIC_TIME 50
+#define GSM_ERROR_ID	1
 
 
 #endif

@@ -31,6 +31,9 @@ typedef enum {GSM_OK = 0, GSM_NOK, GSM_BSY} GSM_CheckType;
 //a pointer to a call back function data type
 typedef void (*GSM_CallBackFnType)(void);
 
+//a pointer to the error call back function data type
+typedef void (*GSM_ErrCallBackFnType)(uint8_t);
+
 
 //--------------------------------------------------------------------------------------
 
@@ -58,14 +61,32 @@ typedef struct
 	/*a variable to indicate the expected length of the received message*/
 	uint8_t ReadMsgLength;
 
+	/*a pointer to a String that holds the service provider APN*/
+	uint8_t* ServiceProviderAPN;
+	/*a variable to indicate the expected length of the service provider APN*/
+	uint8_t ServiceProviderAPNLength;
+
+	/*a pointer to a String that holds the service provider user name*/
+	uint8_t* ServiceProviderUserName;
+	/*a variable to indicate the expected length of the service provider user name*/
+	uint8_t ServiceProviderUserNameLength;
+
+	/*a pointer to a String that holds the service provider password*/
+	uint8_t* ServiceProviderPassWord;
+	/*a variable to indicate the expected length of the service provider password*/
+	uint8_t ServiceProviderPassWordLength;
+
 	/*a pointer to the send message callback function*/
 	GSM_CallBackFnType SendMsgCallBackFn;
 
 	/*a pointer to the received message callback function*/
 	GSM_CallBackFnType RecieveMsgCallBackFn;
 
+	/*a pointer to the server send message callback function*/
+	GSM_CallBackFnType SendServerMsgCallBackFn;
+
 	/*a pointer to the error callback function*/
-	GSM_CallBackFnType ErrorCallBackFn;
+	GSM_ErrCallBackFnType ErrorCallBackFn;
 
 }GSM_ConfigType;
 
@@ -107,18 +128,20 @@ void GSM_Init(void);
 /*
  * This function is used to reset the defaults of the module
  *Inputs:NONE
- * Output:NONE
+ * Output:
+ *		- an indication of the success of the function
 */
 
-void GSM_SoftWareReset(void);
+GSM_CheckType GSM_SoftWareReset(void);
 
 /*
  * This function is used to restart the module
  *Inputs:NONE
- * Output:NONE
+ * Output:
+ *		- an indication of the success of the function
 */
 
-void GSM_HardWareReset(void);
+GSM_CheckType GSM_HardWareReset(void);
 
 /*
  * This function is used to send an SMS from GSM module
@@ -126,10 +149,26 @@ void GSM_HardWareReset(void);
  *		- Msg 			: a pointer the SMS message + (Ctrl+Z) or (ascii: 26)
  *		- MsgLengrh	: the length of the SMS message + 1 (Ctrl+Z)
  *		- PhoneNum		: a pointer to the phone number to send the SMS
- * Output:NONE
+ * Output:
+ *		- an indication of the success of the function
 */
 
-void GSM_Send_SMS(uint8_t* Msg, uint8_t MsgLength, uint8_t* PhoneNum);
+GSM_CheckType GSM_Send_SMS(uint8_t* Msg, uint8_t MsgLength, uint8_t* PhoneNum);
+
+/*
+ * This function is used to send a server message from GSM module
+ *Inputs:
+ *		- ServerIP 		: Server IP address
+ *		- ServerIPLength : the length of the serrver IP address
+ *		- PortNum 		: the server TCP port number
+ *		- PortNumLength : the length of the TCP server port number
+ *		- Msg 			: a pointer the SMS message + (Ctrl+Z) or (ascii: 26)
+ *		- MsgLengrh	: the length of the SMS message + 1 (Ctrl+Z)
+ * Output:
+ *		- an indication of the success of the function
+*/
+
+GSM_CheckType GSM_SendServerMsg(uint8_t* ServerIP, uint8_t ServerIPLength, uint8_t* PortNum, uint8_t PortNumLength, uint8_t* Msg, uint8_t MsgLength);
 
 /*
  * This function is a FSM to manage the on going operations of the GSM module

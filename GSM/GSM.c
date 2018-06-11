@@ -12,17 +12,21 @@
 
 #include "GSM.h"
 
-#define TIME_BETWEEN_COMMANDS		1000U
+#define TIME_BETWEEN_COMMANDS		50U
 #define TIME_TILL_READY				15000U
+#define EXPIRE_TIME					10000U
+
 
 //the time delays used in this file
-#define T30		(30U/CYCLIC_TIME)
-#define T800	(800U/CYCLIC_TIME)
-#define T1100	(1100U/CYCLIC_TIME)
-#define T3000	(3000U/CYCLIC_TIME)
+#define T30		(30U/GSM_CYCLIC_TIME)
+#define T800	(800U/GSM_CYCLIC_TIME)
+#define T1100	(1100U/GSM_CYCLIC_TIME)
+#define T3000	(3000U/GSM_CYCLIC_TIME)
+#define C120 	(80U/GSM_CYCLIC_TIME)
 
-#define T_CMD	(TIME_BETWEEN_COMMANDS/CYCLIC_TIME)
-#define T_RDY	(TIME_TILL_READY/CYCLIC_TIME)
+#define T_CMD	(TIME_BETWEEN_COMMANDS/GSM_CYCLIC_TIME)
+#define T_RDY	(TIME_TILL_READY/GSM_CYCLIC_TIME)
+#define T_EXP 	(EXPIRE_TIME/GSM_CYCLIC_TIME)
 
 
 
@@ -34,58 +38,73 @@
 #define MANGE_STATE_HWRESET 		4U
 #define MANGE_STATE_SEND_SMS 		5U
 #define MANGE_STATE_RECEIVE_SMS 	6U
-#define MANGE_STATE_ERROR 			7U
+#define MANGE_STATE_SEND_SERVER_MSG	7U
+#define MANGE_STATE_ERROR 			8U
 
 //the states of the power on function
-#define POWER_ON_STATE_HIGH_1		0U
-#define POWER_ON_STATE_LOW			1U
-#define POWER_ON_STATE_HIGH_2		2U
-#define POWER_ON_START_DELAY		3U
+#define POWER_ON_STATE_HIGH_1		1U
+#define POWER_ON_STATE_LOW			2U
+#define POWER_ON_STATE_HIGH_2		3U
+#define POWER_ON_START_DELAY		4U
 
 //the states of the hardware reset function
-#define HARDWARE_RESET_STATE_LOW_1		0U
-#define HARDWARE_RESET_STATE_HIGH_1		1U
-#define HARDWARE_RESET_STATE_LOW_2		2U
-#define HARDWARE_RESET_STATE_HIGH_2		3U
-#define HARDWARE_RESET_START_DELAY		4U
+#define HARDWARE_RESET_STATE_LOW_1		1U
+#define HARDWARE_RESET_STATE_HIGH_1		2U
+#define HARDWARE_RESET_STATE_LOW_2		3U
+#define HARDWARE_RESET_STATE_HIGH_2		4U
+#define HARDWARE_RESET_START_DELAY		5U
 
 //the states of the Start communication function
-#define START_STATE_AT_CMD				0U
-#define START_STATE_AT					1U
+#define START_BUSY_STATE				0U
+#define START_STATE_AT_CMD				1U
 #define START_STATE_STOP_ECHO_CMD		2U
-#define START_STATE_STOP_ECHO			3U
-#define START_STATE_FIX_BR_CMD			4U
-#define START_STATE_FIX_BR				5U
-#define START_STATE_DELETE_SMS_CMD		6U
-#define START_STATE_DELETE_SMS			7U
+#define START_STATE_FIX_BR_CMD			3U
+#define START_STATE_DELETE_SMS_CMD		4U
+#define START_STATE_GPRS_APN_CMD		5U
+#define START_STATE_GPRS_ACTIVATE_CMD	6U
+#define START_STATE_GPRS_ATTACH_CMD		7U
+#define START_STATE_TCP_CONTEXT_CMD		8U
+#define START_STATE_TCP_SP_INFO_CMD		9U
+#define START_STATE_TCP_MUX_CMD			10U
+#define START_STATE_TCP_MODE_CMD		11U
+#define START_STATE_TCP_DNSIP_CMD		12U
+
+#define START_NUMBER_OF_CMDS			12U
+
 
 //the states of the send sms function
-#define SEND_STATE_TEXT_MODE_CMD		0U
-#define SEND_STATE_TEXT_MODE			1U
+#define SEND_BUSY_STATE					0U
+#define SEND_STATE_TEXT_MODE_CMD		1U
 #define SEND_STATE_SMS_CHAR_SET_CMD		2U
-#define SEND_STATE_SMS_CHAR_SET			3U
-#define SEND_STATE_MOB_NUM_CMD			4U
-#define SEND_STATE_MOB_NUM				5U
-#define SEND_STATE_WRITE_MSG_CMD		6U
-#define SEND_STATE_WRITE_MSG			7U
-#define SEND_STATE_PDU_MODE_CMD			8U
-#define SEND_STATE_PDU_MODE				9U
+#define SEND_STATE_MOB_NUM_CMD			3U
+#define SEND_STATE_WRITE_MSG_CMD		4U
+#define SEND_STATE_PDU_MODE_CMD			5U
+
+#define SEND_NUMBER_OF_CMDS				5U
 
 //the states of the receive sms function
-#define RECEIVE_STATE_TEXT_MODE_CMD		0U
-#define RECEIVE_STATE_TEXT_MODE			1U
+#define RECEIVE_BUSY_STATE				0U
+#define RECEIVE_STATE_TEXT_MODE_CMD		1U
 #define RECEIVE_STATE_CHECK_CMD			2U
-#define RECEIVE_STATE_CHECK				3U
-#define RECEIVE_STATE_READ_CMD			4U
-#define RECEIVE_STATE_READ				5U
-#define RECEIVE_STATE_PDU_MODE_CMD		6U
-#define RECEIVE_STATE_PDU_MODE			7U
-#define RECEIVE_STATE_DELETE_SMS_CMD	8U
-#define RECEIVE_STATE_DELETE_SMS		9U
+#define RECEIVE_STATE_READ_CMD			3U
+#define RECEIVE_STATE_PDU_MODE_CMD		4U
+#define RECEIVE_STATE_DELETE_SMS_CMD	5U
+
+#define RECEIVE_NUMBER_OF_CMDS			5U
+
+//the states of the send server message function
+#define SERVER_SEND_BUSY_STATE				0U
+#define SERVER_SEND_STATE_CONNECT_CMD		1U
+#define SERVER_SEND_STATE_INIT_SEND_CMD		2U
+#define SERVER_SEND_STATE_SEND_CMD 			3U
+#define SERVER_SEND_STATE_CLOSE_CMD			4U
+#define SERVER_SEND_STATE_DEACTIVATE_CMD	5U
+
+#define SERVER_SEND_NUMBER_OF_CMDS			5U
 
 //the states of the software reset function
-#define SOFTWARE_RESET_STATE_CMD		0U
-#define SOFTWARE_RESET_STATE 			1U
+#define SOFTWARE_RESET_STATE_CMD		1U
+#define SOFTWARE_RESET_STATE 			2U
 
 /***********************************************************************************
 **********				GSM Helper functions prototypes						********
@@ -145,13 +164,23 @@ static GSM_CheckType Read_Msg(void);
 
 static GSM_CheckType Send_Msg(void);
 
+/*
+ * This function is a FSM to send aserver message from GSM module
+  * Inputs:NONE
+ * Output:
+ *		- an indication of the success of the function
+*/
+static GSM_CheckType Send_ServerMsg(void);
+
 /***********************************************************************************
 **********                      Declare Globals                             ********
 ***********************************************************************************/
-
 //variables to hold the data from the gsm driver callback function
 static uint8_t* DriverReceivedResponse;
 static uint8_t DriverReceivedResponseLength;
+
+//a variable to hold the SMS response length
+static uint8_t SMSReceivedResponseLength;
 
 //flags to hold the state of the at command called by the functions in this file whether it succeed or not or it is still in progress
 static uint8_t CMD_DoneFlag;
@@ -163,23 +192,32 @@ static uint8_t HardWareRstFlag;
 static uint8_t StartFlag;
 static uint8_t SendMsgFlag;
 static uint8_t RecieveMsgFlag;
+static uint8_t SendServerMsgFlag;
 
 //variables to hold the data needed to send an SMS
 static uint8_t* MsgToSend;
-static uint8_t MsgToSendLength;
+static uint8_t  MsgToSendLength;
 static uint8_t* MsgToSendPhoneNum;
+
+//variables to hold the data needed to send a server message
+static uint8_t* ServerMsgToSend;
+static uint8_t  ServerMsgToSendLength;
+static uint8_t* ServerIP_Address;
+static uint8_t  ServerIP_AddressLength;
+static uint8_t* ServerPortNumber;
+static uint8_t  ServerPortNumberLength;
 
 //FSMs State variables
 static uint8_t ManageState;
-static uint8_t PowerOnState;
-static uint8_t HardWareResetState;
-static uint8_t SoftWareResetState;
-static uint8_t StartState;
-static uint8_t SendState;
-static uint8_t ReceiveState;
+static uint8_t FSM_State;
+static uint8_t TempFSM_State;
 
-//counter to preform delays
+
+
+//counters
 static uint16_t DelayCounter;
+static uint32_t MaxResponseTimeCounter;
+static uint8_t  Ring120msCounter;
 
 /***********************************************************************************
 **********                      GSM functions' bodies                      ********
@@ -201,38 +239,57 @@ void GSM_Init(void)
 	StartFlag = 0;
 	SendMsgFlag = 0;
 	RecieveMsgFlag = 0;
+	SendServerMsgFlag = 0;
 
 	ManageState = MANGE_STATE_UNINIT;
-	PowerOnState = POWER_ON_STATE_HIGH_1;
-	HardWareResetState = HARDWARE_RESET_STATE_LOW_1;
-	SoftWareResetState = SOFTWARE_RESET_STATE_CMD;
-	StartState = START_STATE_AT_CMD;
-	SendState = SEND_STATE_TEXT_MODE_CMD;
-	ReceiveState = RECEIVE_STATE_TEXT_MODE_CMD;
+	FSM_State = 1;
+	TempFSM_State = 0;
 
 	DelayCounter = 0;
+	MaxResponseTimeCounter = 0;
+	Ring120msCounter = 0;
 }
 
 /*
  * This function is used to reset the defaults of the module
  *Inputs:NONE
- * Output:NONE
+ * Output:
+ *		- an indication of the success of the function
 */
 
-void GSM_SoftWareReset(void)
+GSM_CheckType GSM_SoftWareReset(void)
 {
-	SoftWareRstFlag = 1;
+	uint8_t RetVar = GSM_BSY;
+
+	if (SoftWareRstFlag == 0)
+	{
+		SoftWareRstFlag = 1;
+		RetVar = GSM_OK;	
+	}
+	else{/*the RetVar is initialized to BSY so no action is needed here*/}
+	
+	return RetVar;
 }
 
 /*
  * This function is used to restart the module
  *Inputs:NONE
- * Output:NONE
+ * Output:
+ *		- an indication of the success of the function
 */
 
-void GSM_HardWareReset(void)
+GSM_CheckType GSM_HardWareReset(void)
 {
-	HardWareRstFlag = 1;
+	uint8_t RetVar = GSM_BSY;
+
+	if (HardWareRstFlag == 0)
+	{
+		HardWareRstFlag = 1;
+		RetVar = GSM_OK;	
+	}
+	else{/*the RetVar is initialized to BSY so no action is needed here*/}
+	
+	return RetVar;
 }
 
 /*
@@ -241,17 +298,65 @@ void GSM_HardWareReset(void)
  *		- Msg 			: a pointer the SMS message + (Ctrl+Z) or (ascii: 26)
  *		- MsgLengrh	: the length of the SMS message + 1 (Ctrl+Z)
  *		- PhoneNum		: a pointer to the phone number to send the SMS
- * Output:NONE
+ * Output:
+ *		- an indication of the success of the function
 */
 
-void GSM_Send_SMS(uint8_t* Msg, uint8_t MsgLength, uint8_t* PhoneNum)
+GSM_CheckType GSM_Send_SMS(uint8_t* Msg, uint8_t MsgLength, uint8_t* PhoneNum)
 {
-	SendMsgFlag = 1;
+	uint8_t RetVar = GSM_BSY;
 
-	MsgToSend = Msg;
-	MsgToSendLength = MsgLength;
-	MsgToSendPhoneNum = PhoneNum;
+	if (SendMsgFlag == 0)
+	{
+		SendMsgFlag = 1;
+
+		MsgToSend = Msg;
+		MsgToSendLength = MsgLength;
+		MsgToSendPhoneNum = PhoneNum;
+
+		RetVar = GSM_OK;	
+	}
+	else{/*the RetVar is initialized to BSY so no action is needed here*/}
+	
+	return RetVar;
 }
+
+/*
+ * This function is used to send a server message from GSM module
+ *Inputs:
+ *		- ServerIP 		: Server IP address
+ *		- ServerIPLength : the length of the serrver IP address
+ *		- PortNum 		: the server TCP port number
+ *		- PortNumLength : the length of the TCP server port number
+ *		- Msg 			: a pointer the SMS message + (Ctrl+Z) or (ascii: 26)
+ *		- MsgLengrh	: the length of the SMS message + 1 (Ctrl+Z)
+ * Output:
+ *		- an indication of the success of the function
+*/
+GSM_CheckType GSM_SendServerMsg(uint8_t* ServerIP, uint8_t ServerIPLength, uint8_t* PortNum, uint8_t PortNumLength, uint8_t* Msg, uint8_t MsgLength)
+{
+	uint8_t RetVar = GSM_BSY;
+
+	if (SendServerMsgFlag == 0)
+	{
+		SendServerMsgFlag = 1;
+
+
+		ServerMsgToSend = Msg;
+		ServerMsgToSendLength = MsgLength;
+		ServerIP_Address = ServerIP;
+		ServerIP_AddressLength = ServerIPLength;
+		ServerPortNumber = PortNum;
+		ServerPortNumberLength = PortNumLength;
+
+		RetVar = GSM_OK;	
+	}
+	else{/*the RetVar is initialized to BSY so no action is needed here*/}
+	
+	return RetVar;
+}
+
+
 
 /*
  * This function is a FSM to manage the on going operations of the GSM module
@@ -265,17 +370,29 @@ void GSM_ManageOngoingOperation(void)
 	GSM_CheckType GSM_Check = GSM_BSY;// variable to indicate indicate the state of the called function
 	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
 	uint16_t RingData;//variable to read the Ring pin
+	uint8_t Index; //aloop index
 
 	//read the Ring pin into RingData
 	GPIO_Read(ConfigPtr->RingGroupId, &RingData);
 
 	//check if the Ring pin is low and the module is initialized
-	if((RingData & (ConfigPtr->RingPinMask)) == 0 && (ManageState != MANGE_STATE_UNINIT))
-	{
-		//set the received message flag
-		RecieveMsgFlag = 1;
+	if(((RingData & (ConfigPtr->RingPinMask)) == 0) && (ManageState != MANGE_STATE_UNINIT)&&(RecieveMsgFlag == 0))
+	{ 
+		if (Ring120msCounter < C120)
+		{
+			Ring120msCounter++;	
+		}
+		else
+		{
+			//set the received message flag
+			RecieveMsgFlag = 1;
+			Ring120msCounter = 0;
+		}	
 	}
-	else{/*No action needed if the Ring Pin is HIGH*/}
+	else
+	{
+		Ring120msCounter = 0;
+	}
 
 	//Manage on going operation FSM
 	switch(ManageState)
@@ -293,6 +410,8 @@ void GSM_ManageOngoingOperation(void)
 				ManageState = MANGE_STATE_IDLE;
 				//set the start flag to configure the module right after power on 
                 StartFlag = 1;
+                //reset the state
+                FSM_State = 1;
 			}
 
 			//if the function wasn't executed successfully
@@ -300,6 +419,8 @@ void GSM_ManageOngoingOperation(void)
 			{
 				//change the state to the error state
 				ManageState = MANGE_STATE_ERROR;
+				//reset the state
+                FSM_State = 1;
 			}
 			else{/*the GSM_Check is initialized to BSY so no action is needed here*/}
 
@@ -316,7 +437,7 @@ void GSM_ManageOngoingOperation(void)
 			}
 
 			//if the hardware reset flag was set
-			else if(SoftWareRstFlag == 1)
+			else if(HardWareRstFlag == 1)
 			{
 				//change the state to the hardware reset state
 				ManageState = MANGE_STATE_HWRESET;
@@ -335,6 +456,14 @@ void GSM_ManageOngoingOperation(void)
 				//change the state to the send SMS state
 				ManageState = MANGE_STATE_SEND_SMS;
 			}
+
+			//if the hardware reset flag was set
+			else if(SendServerMsgFlag == 1)
+			{
+				//change the state to the hardware reset state
+				ManageState = MANGE_STATE_SEND_SERVER_MSG;
+			}
+
 			//if receive message flag was set
 			else if(RecieveMsgFlag == 1)
 			{
@@ -358,6 +487,8 @@ void GSM_ManageOngoingOperation(void)
                 ManageState = MANGE_STATE_IDLE;
 				//reset the flag 
                 StartFlag = 0;
+                //reset the state
+                FSM_State = 1;
 			}
 			//if the function wasn't executed successfully
 			else if(GSM_Check == GSM_NOK)
@@ -365,7 +496,9 @@ void GSM_ManageOngoingOperation(void)
 				//change the state to the error state
 				ManageState = MANGE_STATE_ERROR;
 				//reset the flag 
-                StartFlag = 0;    
+                StartFlag = 0; 
+                //reset the state
+                FSM_State = 1;   
 			}
 			else{/*the GSM_Check is initialized to BSY so no action is needed here*/}
 
@@ -386,6 +519,8 @@ void GSM_ManageOngoingOperation(void)
                 SoftWareRstFlag = 0;
                 //set the start communication flag
                 StartFlag = 1;
+                //reset the state
+               	FSM_State = 1;
 			}
 			//if the function wasn't executed successfully
 			else if(GSM_Check == GSM_NOK)
@@ -393,7 +528,9 @@ void GSM_ManageOngoingOperation(void)
 				//change the state to the error state
 				ManageState = MANGE_STATE_ERROR;
 				//reset the flag 
-                SoftWareRstFlag = 0;   
+                SoftWareRstFlag = 0; 
+                //reset the state
+                FSM_State = 1;
 			}
 			else{/*the GSM_Check is initialized to BSY so no action is needed here*/}
 
@@ -414,6 +551,8 @@ void GSM_ManageOngoingOperation(void)
                 HardWareRstFlag = 0;
                 //set the start communication flag
                 StartFlag = 1;
+                //reset the state
+           		FSM_State = 1;
 			}
 			//if the function wasn't executed successfully
 			else if(GSM_Check == GSM_NOK)
@@ -421,7 +560,9 @@ void GSM_ManageOngoingOperation(void)
 				//change the state to the error state
 				ManageState = MANGE_STATE_ERROR;
 				//reset the flag 
-                HardWareRstFlag = 0;   
+                HardWareRstFlag = 0;
+                //reset the state
+                FSM_State = 1;  
 			}
 			else{/*the GSM_Check is initialized to BSY so no action is needed here*/}
 
@@ -440,6 +581,8 @@ void GSM_ManageOngoingOperation(void)
                 ManageState = MANGE_STATE_IDLE;
 				//reset the flag 
                 SendMsgFlag = 0;
+                //reset the state
+                FSM_State = 1;
 
                 //call he callback function
                 ConfigPtr->SendMsgCallBackFn();
@@ -450,7 +593,9 @@ void GSM_ManageOngoingOperation(void)
 				//change the state to the error state
 				ManageState = MANGE_STATE_ERROR;
 				//reset the flag 
-                SendMsgFlag = 0;    
+                SendMsgFlag = 0;
+                //reset the state
+                FSM_State = 1; 
 			}
 			else{/*the GSM_Check is initialized to BSY so no action is needed here*/}
 
@@ -469,9 +614,18 @@ void GSM_ManageOngoingOperation(void)
                 ManageState = MANGE_STATE_IDLE;
 				//reset the flag 
                 RecieveMsgFlag = 0;
+                //reset the state
+                FSM_State = 1;
+
+                //exectract the msg from the response
+				for(Index = 0; Index < (ConfigPtr->ReadMsgLength); Index++)
+				{
+					ConfigPtr->ReadMsgBuffer[Index] = DriverReceivedResponse[SMSReceivedResponseLength - (ConfigPtr->ReadMsgLength) + Index];
+				}
 
                 //call he callback function
-                ConfigPtr->RecieveMsgCallBackFn();
+                ConfigPtr->RecieveMsgCallBackFn();   
+			
 			}
 			//if the function wasn't executed successfully
 			else if(GSM_Check == GSM_NOK)
@@ -479,7 +633,42 @@ void GSM_ManageOngoingOperation(void)
 				//change the state to the error state
 				ManageState = MANGE_STATE_ERROR;
 				//reset the flag 
-                RecieveMsgFlag = 0;    
+                RecieveMsgFlag = 0;
+                //reset the state
+                FSM_State = 1;   
+			}
+			else{/*the GSM_Check is initialized to BSY so no action is needed here*/}
+
+			break;
+		}
+
+		case MANGE_STATE_SEND_SERVER_MSG :
+		{
+			//call send message function
+			GSM_Check = Send_ServerMsg();
+
+			//if the function was executed successfully
+			if(GSM_Check == GSM_OK)
+			{
+				//change the state to the idle state
+                ManageState = MANGE_STATE_IDLE;
+				//reset the flag 
+                SendServerMsgFlag = 0;
+                //reset the state
+                FSM_State = 1;
+
+                //call he callback function
+                ConfigPtr->SendServerMsgCallBackFn();
+			}
+			//if the function wasn't executed successfully
+			else if(GSM_Check == GSM_NOK)
+			{
+				//change the state to the error state
+				ManageState = MANGE_STATE_ERROR;
+				//reset the flag 
+                SendServerMsgFlag= 0;
+                //reset the state
+                FSM_State = 1;    
 			}
 			else{/*the GSM_Check is initialized to BSY so no action is needed here*/}
 
@@ -489,12 +678,11 @@ void GSM_ManageOngoingOperation(void)
 		case MANGE_STATE_ERROR :
 		{
 			//call the callback function
-			ConfigPtr->ErrorCallBackFn();
+			ConfigPtr->ErrorCallBackFn(GSM_ERROR_ID);
 
 			//change the state to the idle state
             ManageState = MANGE_STATE_IDLE;
-
-
+			
 		}
 
 		default : {/*there is no thing to do*/}
@@ -517,10 +705,8 @@ void GSM_ManageOngoingOperation(void)
 
 void GSM_DriverCallBackFn(GSM_DriverCheckType GSM_DriverCheck, uint8_t* ReceivedResponse, uint8_t ReceivedResponseLength)
 {
-	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
-	UART_StartSilentTransmission (ReceivedResponse,ReceivedResponseLength,1);
-	#endif
-
+	//UART_StartSilentTransmission (ReceivedResponse,ReceivedResponseLength,1);
+	
 	//if the AT command was executed successfully
 	if(GSM_DriverCheck == GSM_DRIVER_OK)
 	{
@@ -538,10 +724,6 @@ void GSM_DriverCallBackFn(GSM_DriverCheckType GSM_DriverCheck, uint8_t* Received
 		//set the command flags to done not successfully
 		CMD_DoneFlag = 1;
 		CMD_SuccessFlag = 0;
-
-		#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
-		CMD_SuccessFlag = 1;
-		#endif
 	}
 }
 
@@ -561,7 +743,7 @@ static GSM_CheckType PowerOn(void)
 	GSM_CheckType RetVar = GSM_BSY;// variable to hold the return value to indicate the state of the function 
 	const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
 
-	switch(PowerOnState)
+	switch(FSM_State)
 	{
 		case POWER_ON_STATE_HIGH_1 :
 		{ 
@@ -571,7 +753,7 @@ static GSM_CheckType PowerOn(void)
 			GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, HIGH);
 
 			//change the state to the next state
-			PowerOnState = POWER_ON_STATE_LOW;
+			FSM_State = POWER_ON_STATE_LOW;
 
 			break;
 		}
@@ -589,7 +771,7 @@ static GSM_CheckType PowerOn(void)
 				//PWRK LOW
 				GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, LOW);
 				//change the state to the next state
-				PowerOnState = POWER_ON_STATE_HIGH_2;
+				FSM_State = POWER_ON_STATE_HIGH_2;
 				//reset the counter
 				DelayCounter = 0;	
 			}
@@ -610,7 +792,7 @@ static GSM_CheckType PowerOn(void)
 				//PWRK LOW
 				GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, HIGH);
 				//change the state to the next state
-				PowerOnState = POWER_ON_START_DELAY;
+				FSM_State = POWER_ON_START_DELAY;
 				//reset the counter
 				DelayCounter = 0;	
 			}
@@ -628,8 +810,6 @@ static GSM_CheckType PowerOn(void)
 			//if the delay is done
 			else 
 			{
-				//change the state to the next state
-				PowerOnState = POWER_ON_STATE_HIGH_1;
 				//reset the counter
 				DelayCounter = 0;
 
@@ -637,10 +817,14 @@ static GSM_CheckType PowerOn(void)
 
 				RetVar = GSM_OK;	
 			}
+			
+			break;
 		}
 
 		default :
-		{/*there is no other thing to do*/}
+		{
+			RetVar = GSM_NOK;
+		}
 
 	}
 
@@ -659,7 +843,7 @@ static GSM_CheckType HardWareReset(void)
 	GSM_CheckType RetVar = GSM_BSY;// variable to hold the return value to indicate the state of the function 
 	const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
 
-	switch(HardWareResetState)
+	switch(FSM_State)
 	{
 		case HARDWARE_RESET_STATE_LOW_1 :
 		{ 
@@ -667,7 +851,7 @@ static GSM_CheckType HardWareReset(void)
 			GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, LOW);
 
 			//change the state to the next state
-			HardWareResetState = HARDWARE_RESET_STATE_HIGH_1;
+			FSM_State = HARDWARE_RESET_STATE_HIGH_1;
 
 			break;
 		}
@@ -685,7 +869,7 @@ static GSM_CheckType HardWareReset(void)
 				//PWRK LOW
 				GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, HIGH);
 				//change the state to the next state
-				HardWareResetState = HARDWARE_RESET_STATE_LOW_2;
+				FSM_State = HARDWARE_RESET_STATE_LOW_2;
 				//reset the counter
 				DelayCounter = 0;	
 			}
@@ -706,7 +890,7 @@ static GSM_CheckType HardWareReset(void)
 				//PWRK LOW
 				GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, LOW);
 				//change the state to the next state
-				HardWareResetState = HARDWARE_RESET_STATE_HIGH_2;
+				FSM_State = HARDWARE_RESET_STATE_HIGH_2;
 				//reset the counter
 				DelayCounter = 0;	
 			}
@@ -727,7 +911,7 @@ static GSM_CheckType HardWareReset(void)
 				//PWRK LOW
 				GPIO_Write(GSM_ConfigPtr->PWRKeyGroupId, GSM_ConfigPtr->PWRKeyPinMask, HIGH);
 				//change the state to the next state
-				HardWareResetState = HARDWARE_RESET_START_DELAY;
+				FSM_State = HARDWARE_RESET_START_DELAY;
 				//reset the counter
 				DelayCounter = 0;	
 			}
@@ -746,17 +930,19 @@ static GSM_CheckType HardWareReset(void)
 			//if the delay is done
 			else 
 			{
-				//change the state to the next state
-				HardWareResetState = HARDWARE_RESET_STATE_LOW_1;
 				//reset the counter
 				DelayCounter = 0;
 				//set the return value to OK
 				RetVar = GSM_OK;	
 			}
+
+			break;
 		}
 
 		default :
-		{/*there is no other thing to do*/}
+		{
+			RetVar = GSM_NOK;
+		}
 
 	}
 
@@ -775,14 +961,16 @@ static GSM_CheckType SoftWareReset(void)
 	//variables declarations 
 	GSM_CheckType RetVar = GSM_BSY;// variable to hold the return value to indicate the state of the function 
 
-	switch(SoftWareResetState)
+	switch(FSM_State)
 	{
 		case SOFTWARE_RESET_STATE_CMD :
 		{
 			//start the command transmission
 			GSM_Driver_ATCMD_ResetDefaults();
 
-			SoftWareResetState = SOFTWARE_RESET_STATE;
+			FSM_State = SOFTWARE_RESET_STATE;
+
+			MaxResponseTimeCounter = 0;
 
 			break;
 		}
@@ -792,29 +980,40 @@ static GSM_CheckType SoftWareReset(void)
 			//check the state of the command success
 			if (CMD_DoneFlag == 1)
 			{
+				CMD_DoneFlag = 0;
+
 				if(CMD_SuccessFlag == 1)
 				{
 					//set the return value to ok 
 					RetVar = GSM_OK;
-
-					//reset the command flags
-					CMD_DoneFlag = 0;
+					
 					CMD_SuccessFlag = 0;
-
-					SoftWareResetState = SOFTWARE_RESET_STATE_CMD;
 				}
 				else
 				{
 					//set the return value to not ok for the manager to handle the error
 					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-
-					SoftWareResetState = SOFTWARE_RESET_STATE_CMD;
 				}
 			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-
+			else
+			{
+				if(MaxResponseTimeCounter < T_EXP)
+				{
+					MaxResponseTimeCounter++;
+				}
+				else
+				{
+					MaxResponseTimeCounter = 0;
+					GSM_Driver_ATCMD_Stop();
+					RetVar = GSM_NOK; 
+				}
+			}
 			break;
+		}
+
+		default :
+		{
+			RetVar = GSM_NOK;
 		}
 	}
 	
@@ -832,200 +1031,211 @@ static GSM_CheckType Start(void)
 {
 	//variables declarations 
 	GSM_CheckType RetVar = GSM_BSY;// variable to hold the return value to indicate the state of the function 
-	
-	switch(StartState)
-	{
-		case START_STATE_AT_CMD :
-		{
-			GSM_Driver_ATCMD_AT();
-			StartState = START_STATE_AT;
-			break;
-		}
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
 
-		case START_STATE_AT :
+	switch(FSM_State)
+	{
+		case START_BUSY_STATE :
 		{
 			//check the state of the command success
 			if (CMD_DoneFlag == 1)
 			{
+				CMD_DoneFlag = 0;
+
 				if(CMD_SuccessFlag == 1)
 				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
 					CMD_SuccessFlag = 0;
 
-					//change the state to the next state
-					StartState = START_STATE_STOP_ECHO_CMD;
+					if (TempFSM_State == START_NUMBER_OF_CMDS)
+					{
+						RetVar = GSM_OK; 
+					}
+					else
+					{
+						FSM_State = TempFSM_State + 1;
+					}
 				}
 				else
 				{
 					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
+					RetVar = GSM_NOK;		
 				}
 			}
-			else{/*if the driver isn't done executing the command no action needed*/}
+			else
+			{
+				if(MaxResponseTimeCounter < T_EXP)
+				{
+					MaxResponseTimeCounter++;
+				}
+				else
+				{
+					MaxResponseTimeCounter = 0;
+					GSM_Driver_ATCMD_Stop();
+					RetVar = GSM_NOK; 
+				}
+			}
+		
+			break;
+		}
 
+		case START_STATE_AT_CMD :
+		{
+			GSM_Driver_ATCMD_AT();
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
 			break;
 		}
 
 		case  START_STATE_STOP_ECHO_CMD :
 		{
-			//delay between commands 
-    		if(DelayCounter < T_CMD)
-    		{
-    			DelayCounter++;
-    		}
+			
+			GSM_Driver_ATCMD_StopEcho();
 
-    		//if the delay is done
-    		else
-    		{
-    			GSM_Driver_ATCMD_StopEcho();
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
 
-    			StartState = START_STATE_STOP_ECHO;
-
-    			//reset counter
-				DelayCounter = 0;
-    		}
-
+			MaxResponseTimeCounter = 0;
+   
     		break;
-		}
-
-		case START_STATE_STOP_ECHO :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					StartState = START_STATE_FIX_BR_CMD;
-					
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					StartState = START_STATE_AT_CMD;
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-		
-			break;
 		}
 
 		case START_STATE_FIX_BR_CMD :
 		{
-			//delay between commands 
-    		if(DelayCounter < T_CMD)
-    		{
-    			DelayCounter++;
-    		}
+			
+			GSM_Driver_ATCMD_FixBR();
 
-    		//if the delay is done
-    		else
-    		{
-    			GSM_Driver_ATCMD_FixBR();
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
 
-    			StartState = START_STATE_FIX_BR;
-
-    			//reset counter
-				DelayCounter = 0;
-    		}
-
+			MaxResponseTimeCounter = 0;
+	
     		break;
-		}
-
-		case START_STATE_FIX_BR :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					StartState = START_STATE_DELETE_SMS_CMD;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					StartState = START_STATE_AT_CMD;
-					
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-		
-			break;
 		}
 
 		case START_STATE_DELETE_SMS_CMD :
 		{
-			//delay between commands 
-    		if(DelayCounter < T_CMD)
-    		{
-    			DelayCounter++;
-    		}
+			
+			GSM_Driver_ATCMD_DeleteSMS();
 
-    		//if the delay is done
-    		else
-    		{
-    			GSM_Driver_ATCMD_DeleteSMS();
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
 
-    			StartState = START_STATE_DELETE_SMS;
-
-    			//reset counter
-				DelayCounter = 0;
-    		}
+			MaxResponseTimeCounter = 0;
 
     		break;
 		}
 
-		case START_STATE_DELETE_SMS :
+		case START_STATE_GPRS_APN_CMD :
 		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
+			
+    		GSM_Driver_ATCMD_GPRS_APN(ConfigPtr->ServiceProviderAPN, ConfigPtr->ServiceProviderAPNLength);
 
-					//change the state to the next state
-					StartState = START_STATE_AT_CMD;
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
 
-					//set the return value to ok for 
-					RetVar = GSM_OK;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					StartState = START_STATE_AT_CMD;
-					
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-		
+			MaxResponseTimeCounter = 0;
+    		
+			
 			break;
 		}
 
+		case START_STATE_GPRS_ACTIVATE_CMD :
+		{
+			
+			GSM_Driver_ATCMD_GPRS_Activate();
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+
+    		break;
+		}
+
+		case START_STATE_GPRS_ATTACH_CMD :
+		{
+			
+			GSM_Driver_ATCMD_GPRS_Attach();
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+
+    		break;
+		}
+			
+		case START_STATE_TCP_CONTEXT_CMD :
+		{
+			
+			GSM_Driver_ATCMD_TCP_SetContext();
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+
+    		break;
+		}
+
+		case START_STATE_TCP_SP_INFO_CMD :
+		{
+    		GSM_Driver_ATCMD_TCP_SP_Info(ConfigPtr->ServiceProviderAPN, ConfigPtr->ServiceProviderAPNLength, ConfigPtr->ServiceProviderUserName, ConfigPtr->ServiceProviderUserNameLength, ConfigPtr->ServiceProviderPassWord, ConfigPtr->ServiceProviderPassWordLength);
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
+			break;
+		}
+		
+		case START_STATE_TCP_MUX_CMD :
+		{
+			
+			GSM_Driver_ATCMD_TCP_DisableMUX();
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+
+    		break;
+		}
+
+		case START_STATE_TCP_MODE_CMD :
+		{
+			
+			GSM_Driver_ATCMD_TCP_SetMode();
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+
+    		break;
+		}
+
+		case START_STATE_TCP_DNSIP_CMD :
+		{
+			
+			GSM_Driver_ATCMD_TCP_SetDNSIP();
+
+			TempFSM_State = FSM_State;
+			FSM_State = START_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+
+    		break;
+		}
+
 		default :
-		{/*nothing to be done*/}
+		{
+			RetVar = GSM_NOK;
+		}
 	}
 
 	return RetVar;
@@ -1043,254 +1253,115 @@ static GSM_CheckType Send_Msg(void)
 	//variables declarations 
 	GSM_CheckType RetVar = GSM_BSY;// variable to hold the return value to indicate the state of the function 
 
-	switch(SendState)
+	switch(FSM_State)
 	{
-		case SEND_STATE_TEXT_MODE_CMD :
-		{
-			GSM_Driver_ATCMD_SMSFormat(TEXT_MODE);
-
-			SendState = SEND_STATE_TEXT_MODE;
-			
-			break;
-		}
-
-		case SEND_STATE_TEXT_MODE :
+		case SEND_BUSY_STATE :
 		{
 			//check the state of the command success
 			if (CMD_DoneFlag == 1)
 			{
+				CMD_DoneFlag = 0;
+
 				if(CMD_SuccessFlag == 1)
 				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
 					CMD_SuccessFlag = 0;
 
-					//change the state to the next state
-					SendState = SEND_STATE_SMS_CHAR_SET_CMD;
+					if (TempFSM_State == SEND_NUMBER_OF_CMDS)
+					{
+						RetVar = GSM_OK; 
+					}
+					else
+					{
+						FSM_State = TempFSM_State + 1;
+					}
 				}
 				else
 				{
 					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
+					RetVar = GSM_NOK;		
 				}
 			}
-			else{/*if the driver isn't done executing the command no action needed*/}
+			else
+			{
+				if(MaxResponseTimeCounter < T_EXP)
+				{
+					MaxResponseTimeCounter++;
+				}
+				else
+				{
+					MaxResponseTimeCounter = 0;
+					GSM_Driver_ATCMD_Stop();
+					RetVar = GSM_NOK; 
+				}
+			}
+		
+			break;
+		}
 
+		case SEND_STATE_TEXT_MODE_CMD :
+		{
+			GSM_Driver_ATCMD_SMSFormat(TEXT_MODE);
+
+			TempFSM_State = FSM_State;
+			FSM_State = SEND_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
 			break;
 		}
 
 		case SEND_STATE_SMS_CHAR_SET_CMD :
 		{
-			//delay between commands 
-    		if(DelayCounter < T_CMD)
-    		{
-    			DelayCounter++;
-    		}
+			GSM_Driver_ATCMD_CharSet();
 
-    		//if the delay is done
-    		else
-    		{
-    			GSM_Driver_ATCMD_CharSet();
+			TempFSM_State = FSM_State;
+			FSM_State = SEND_BUSY_STATE;
 
-    			SendState = SEND_STATE_SMS_CHAR_SET;
-
-    			//reset counter
-				DelayCounter = 0;
-			}
-
-			break;
-		}
-
-		case SEND_STATE_SMS_CHAR_SET :
-		{
-		
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					SendState = SEND_STATE_MOB_NUM_CMD;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					SendState = SEND_STATE_TEXT_MODE_CMD;
-				}
-			}
-			
-			else{/*if the driver isn't done executing the command no action needed*/}
+			MaxResponseTimeCounter = 0;
 
 			break;
 		}
 
 		case SEND_STATE_MOB_NUM_CMD :
 		{
-			//delay between commands 
-    		if(DelayCounter < T_CMD)
-    		{
-    			DelayCounter++;
-    		}
+			GSM_Driver_ATCMD_SendSMS_MobNum(MsgToSendPhoneNum);
 
-    		//if the delay is done
-    		else
-    		{
-    			GSM_Driver_ATCMD_SendSMS_MobNum(MsgToSendPhoneNum);
+			TempFSM_State = FSM_State;
+			FSM_State = SEND_BUSY_STATE;
 
-    			SendState = SEND_STATE_MOB_NUM;
-
-    			//reset counter
-				DelayCounter = 0;
-			}
-
-			break;
-		}
-
-		case SEND_STATE_MOB_NUM :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					SendState = SEND_STATE_WRITE_MSG_CMD;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					SendState = SEND_STATE_TEXT_MODE_CMD;	
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
+			MaxResponseTimeCounter = 0;
 
 			break;
 		}
 
 		case SEND_STATE_WRITE_MSG_CMD :
 		{
-			//delay between commands 
-    		if(DelayCounter < T_CMD)
-    		{
-    			DelayCounter++;
-    		}
+			GSM_Driver_ATCMD_SendSMS_WriteMsg(MsgToSend, MsgToSendLength);
 
-    		//if the delay is done
-    		else
-    		{
-    			GSM_Driver_ATCMD_SendSMS_WriteMsg(MsgToSend, MsgToSendLength);
+			TempFSM_State = FSM_State;
+			FSM_State = SEND_BUSY_STATE;
 
+			MaxResponseTimeCounter = 0;
 
-    			SendState = SEND_STATE_WRITE_MSG;
-
-    			//reset counter
-				DelayCounter = 0;
-			}
-
-			break;
-		}
-
-		case SEND_STATE_WRITE_MSG :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					SendState = SEND_STATE_PDU_MODE_CMD;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					SendState = SEND_STATE_TEXT_MODE_CMD;
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-		
 			break;
 		}
 
 		case SEND_STATE_PDU_MODE_CMD :
 		{
-			//delay between commands 
-    		if(DelayCounter < T_CMD)
-    		{
-    			DelayCounter++;
-    		}
+			GSM_Driver_ATCMD_SMSFormat(PDU_MODE);
 
-    		//if the delay is done
-    		else
-    		{
-    			GSM_Driver_ATCMD_SMSFormat(PDU_MODE);
+			TempFSM_State = FSM_State;
+			FSM_State = SEND_BUSY_STATE;
 
+			MaxResponseTimeCounter = 0;
 
-    			SendState = SEND_STATE_PDU_MODE;
-
-    			//reset counter
-				DelayCounter = 0;
-			}
-
-			break;
-		}
-
-		case SEND_STATE_PDU_MODE :
-		{
-
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					SendState = SEND_STATE_TEXT_MODE_CMD;
-
-					//set the return value to ok for 
-					RetVar = GSM_OK;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					SendState = SEND_STATE_TEXT_MODE_CMD;
-					
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-			
 			break;
 		}
 
 		default :
-		{/*nothing to be done*/}
+		{
+			RetVar = GSM_NOK;
+		}
 	}
 
 	return RetVar;
@@ -1307,43 +1378,69 @@ static GSM_CheckType Read_Msg(void)
 {
 	//variables declarations 
 	GSM_CheckType RetVar = GSM_BSY;// variable to hold the return value to indicate the state of the function 
-	const GSM_ConfigType* GSM_ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
-	uint8_t Index;//loop index
+	const GSM_ConfigType* ConfigPtr = &GSM_ConfigParam;//declare a pointer to structure of the GSM_ConfigType
 
-	switch(ReceiveState)
+	switch(FSM_State)
 	{
-		case RECEIVE_STATE_TEXT_MODE_CMD :
-		{
-			GSM_Driver_ATCMD_SMSFormat(TEXT_MODE);
-
-			ReceiveState = RECEIVE_STATE_TEXT_MODE;
-			
-			break;
-		}
-
-		case RECEIVE_STATE_TEXT_MODE :
+		case RECEIVE_BUSY_STATE :
 		{
 			//check the state of the command success
 			if (CMD_DoneFlag == 1)
 			{
+				CMD_DoneFlag = 0;
+
 				if(CMD_SuccessFlag == 1)
 				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
 					CMD_SuccessFlag = 0;
 
-					//change the state to the next state
-					ReceiveState = RECEIVE_STATE_CHECK_CMD;
+					if(TempFSM_State == RECEIVE_STATE_READ_CMD)
+					{
+						SMSReceivedResponseLength = DriverReceivedResponseLength;
+					}
+					else
+					{/*if the state wasn't the read msg state then there is no need to store the recieved response length*/}
+
+					if (TempFSM_State == RECEIVE_NUMBER_OF_CMDS)
+					{
+						RetVar = GSM_OK; 
+					}
+					else
+					{
+						FSM_State = TempFSM_State + 1;
+					}
 				}
 				else
 				{
 					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
+					RetVar = GSM_NOK;		
 				}
 			}
-			else{/*if the driver isn't done executing the command no action needed*/}
+			else
+			{
+				if(MaxResponseTimeCounter < T_EXP)
+				{
+					MaxResponseTimeCounter++;
+				}
+				else
+				{
+					MaxResponseTimeCounter = 0;
+					GSM_Driver_ATCMD_Stop();
+					RetVar = GSM_NOK; 
+				}
+			}
+		
+			break;
+		}
 
+		case RECEIVE_STATE_TEXT_MODE_CMD :
+		{
+			GSM_Driver_ATCMD_SMSFormat(TEXT_MODE);
+
+			TempFSM_State = FSM_State;
+			FSM_State = RECEIVE_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
 			break;
 		}
 
@@ -1360,40 +1457,14 @@ static GSM_CheckType Read_Msg(void)
     		{
     			GSM_Driver_ATCMD_CheckReceivedSMS();
 
-    			ReceiveState = RECEIVE_STATE_CHECK;
+				TempFSM_State = FSM_State;
+				FSM_State = RECEIVE_BUSY_STATE;
 
-    			//reset counter
 				DelayCounter = 0;
-			}
 
-			break;
-		}
-
-		case RECEIVE_STATE_CHECK :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					ReceiveState = RECEIVE_STATE_READ_CMD;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					ReceiveState = RECEIVE_STATE_TEXT_MODE_CMD;
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-
+				MaxResponseTimeCounter = 0;
+    		}
+			
 			break;
 		}
 
@@ -1408,48 +1479,16 @@ static GSM_CheckType Read_Msg(void)
     		//if the delay is done
     		else
     		{
-    			GSM_Driver_ATCMD_ReadSMS(GSM_ConfigPtr->ReadMsgLength);
+    			GSM_Driver_ATCMD_ReadSMS(ConfigPtr->ReadMsgLength);
 
-    			ReceiveState = RECEIVE_STATE_READ;
+				TempFSM_State = FSM_State;
+				FSM_State = RECEIVE_BUSY_STATE;
 
-    			//reset counter
 				DelayCounter = 0;
-			}
 
-			break;
-		}
-
-		case RECEIVE_STATE_READ :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//exec tract the msg from the response
-					for(Index = 0; Index < (GSM_ConfigPtr->ReadMsgLength); Index++)
-					{
-						GSM_ConfigPtr->ReadMsgBuffer[Index] = DriverReceivedResponse[DriverReceivedResponseLength - (GSM_ConfigPtr->ReadMsgLength) + Index];
-					}
-
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					ReceiveState = RECEIVE_STATE_PDU_MODE_CMD;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					ReceiveState = RECEIVE_STATE_TEXT_MODE_CMD;
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-
+				MaxResponseTimeCounter = 0;
+    		}
+			
 			break;
 		}
 
@@ -1466,40 +1505,14 @@ static GSM_CheckType Read_Msg(void)
     		{
     			GSM_Driver_ATCMD_SMSFormat(PDU_MODE);
 
-    			ReceiveState = RECEIVE_STATE_PDU_MODE;
+				TempFSM_State = FSM_State;
+				FSM_State = RECEIVE_BUSY_STATE;
 
-    			//reset counter
 				DelayCounter = 0;
-			}
 
-			break;
-		}
+				MaxResponseTimeCounter = 0;
+    		}
 
-		case RECEIVE_STATE_PDU_MODE :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					ReceiveState = RECEIVE_STATE_DELETE_SMS_CMD;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-					CMD_DoneFlag = 0;
-					//reset state
-					ReceiveState = RECEIVE_STATE_TEXT_MODE_CMD;
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-    		
 			break;
 		}
 
@@ -1516,51 +1529,159 @@ static GSM_CheckType Read_Msg(void)
     		{
     			GSM_Driver_ATCMD_DeleteSMS();
 
-    			ReceiveState = RECEIVE_STATE_DELETE_SMS;
+				TempFSM_State = FSM_State;
+				FSM_State = RECEIVE_BUSY_STATE;
 
-    			//reset counter
 				DelayCounter = 0;
-			}
 
-			break;
-		}
+				MaxResponseTimeCounter = 0;
+    		}
 
-		case RECEIVE_STATE_DELETE_SMS :
-		{
-			//check the state of the command success
-			if (CMD_DoneFlag == 1)
-			{
-				if(CMD_SuccessFlag == 1)
-				{
-					//reset the command flags
-					CMD_DoneFlag = 0;
-					CMD_SuccessFlag = 0;
-
-					//change the state to the next state
-					ReceiveState = RECEIVE_STATE_TEXT_MODE_CMD;
-
-					//set the return value to ok for 
-					RetVar = GSM_OK;
-				}
-				else
-				{
-					//set the return value to not ok for the manager to handle the error
-					RetVar = GSM_NOK;
-
-					CMD_DoneFlag = 0;
-
-					//reset state
-					ReceiveState = RECEIVE_STATE_TEXT_MODE_CMD;
-				}
-			}
-			else{/*if the driver isn't done executing the command no action needed*/}
-			
 			break;
 		}
 
 		default :
-		{/*nothing to be done*/}
+		{
+			RetVar = GSM_NOK;
+		}
 	}
 
 	return RetVar;
 }
+
+
+/*
+ * This function is a FSM to send aserver message from GSM module
+  * Inputs:NONE
+ * Output:
+ *		- an indication of the success of the function
+*/
+static GSM_CheckType Send_ServerMsg(void)
+{
+	//variables declarations 
+	GSM_CheckType RetVar = GSM_BSY;// variable to hold the return value to indicate the state of the function 
+
+	switch(FSM_State)
+	{
+		case SERVER_SEND_BUSY_STATE :
+		{
+			//check the state of the command success
+			if (CMD_DoneFlag == 1)
+			{
+				CMD_DoneFlag = 0;
+
+				if(CMD_SuccessFlag == 1)
+				{
+					CMD_SuccessFlag = 0;
+
+					if (TempFSM_State == SERVER_SEND_NUMBER_OF_CMDS)
+					{
+						RetVar = GSM_OK; 
+					}
+					else
+					{
+						FSM_State = TempFSM_State + 1;
+					}
+				}
+				else
+				{
+					//set the return value to not ok for the manager to handle the error
+					RetVar = GSM_NOK;		
+				}
+			}
+			else
+			{
+				if(MaxResponseTimeCounter < T_EXP)
+				{
+					MaxResponseTimeCounter++;
+				}
+				else
+				{
+					MaxResponseTimeCounter = 0;
+					GSM_Driver_ATCMD_Stop();
+					RetVar = GSM_NOK; 
+				}
+			}
+		
+			break;
+		}
+
+		case SERVER_SEND_STATE_CONNECT_CMD :
+		{
+			GSM_Driver_ATCMD_TCP_Connect(ServerIP_Address, ServerIP_AddressLength, ServerPortNumber, ServerPortNumberLength);
+
+			TempFSM_State = FSM_State;
+			FSM_State = SERVER_SEND_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
+			break;
+		}
+
+		case SERVER_SEND_STATE_INIT_SEND_CMD :
+		{
+			GSM_Driver_ATCMD_InitSendServerMsg();
+
+			TempFSM_State = FSM_State;
+			FSM_State = SERVER_SEND_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
+			break;
+		}
+
+		case SERVER_SEND_STATE_SEND_CMD :
+		{
+			GSM_Driver_ATCMD_SendServerMsg(ServerMsgToSend, ServerMsgToSendLength);
+
+			TempFSM_State = FSM_State;
+			FSM_State = SERVER_SEND_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
+			break;
+		}
+
+		case SERVER_SEND_STATE_CLOSE_CMD :
+		{
+			GSM_Driver_ATCMD_TCP_Close();
+
+			TempFSM_State = FSM_State;
+			FSM_State = SERVER_SEND_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
+			break;
+		}
+		
+		case SERVER_SEND_STATE_DEACTIVATE_CMD :
+		{
+			GSM_Driver_ATCMD_TCP_Deactivate();
+
+			TempFSM_State = FSM_State;
+			FSM_State = SERVER_SEND_BUSY_STATE;
+
+			MaxResponseTimeCounter = 0;
+			
+			break;
+		}
+		
+		default :
+		{
+			RetVar = GSM_NOK;
+		}
+	}
+
+	return RetVar;
+}
+
+
+
+/*
+
+  special callback function for error 
+
+  start in a siparate state
+
+
+*/

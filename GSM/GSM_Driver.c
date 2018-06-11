@@ -11,6 +11,7 @@
 ***************************************************************************************/
 
 #include "GSM_Driver.h"
+#include "GPIO.h"
 
 
 /***********************************************************************************
@@ -19,6 +20,8 @@
 /*****Development mode Macro*****/
 //#define DEVELOPMENT_MODE_ENABLE
 /********************************/
+
+#define SERVER_CMDS_MAX_LENGTH			100U
 
 /*AT Commands lengths Response lengths Macros*/
 #define AT_CMD_LENGTH					3U
@@ -31,6 +34,22 @@
 #define SEND_SMS_MOBNUM_CMD_LENGTH		24U
 #define CHECK_RECEIVED_SMS_CMD_LENGTH	10U
 #define READ_SMS_CMD_LENGTH				10U
+
+
+
+#define GPRS_APN_CMD_LENGTH				SERVER_CMDS_MAX_LENGTH	
+#define TCP_SP_INFO_CMD_LENGTH			SERVER_CMDS_MAX_LENGTH
+#define TCP_CONNECT_CMD_LENGTH			SERVER_CMDS_MAX_LENGTH
+#define INIT_SEND_SERVER_MSG_CMD_LENGTH	10U
+#define GPRS_ACTIVATE_CMD_LENGTH		13U
+#define GPRS_ATTACH_CMD_LENGTH			11U
+#define TCP_SET_CONTEXT_CMD_LENGTH		13U
+#define TCP_DISABLE_MUX_CMD_LENGTH		11U
+#define TCP_SET_MODE_CMD_LENGTH			12U
+#define TCP_SET_DNSIP_CMD_LENGTH		13U
+#define TCP_CLOSE_CMD_LENGTH			11U
+#define TCP_DEACTIVATE_CMD_LENGTH		11U
+
 
 
 /*AT Commands Response lengths Macros*/
@@ -46,6 +65,24 @@
 #define CHECK_RECEIVED_SMS_RRES_LENGTH	6U
 #define READ_SMS_RRES_LENGTH			65U
 
+
+
+
+#define GPRS_APN_RRES_LENGTH				4U
+#define TCP_SP_INFO_RRES_LENGTH				4U
+#define TCP_CONNECT_RRES_LENGTH				18U
+#define INIT_SEND_SERVER_MSG_RRES_LENGTH	3U
+#define SEND_SERVER_MSG_RRES_LENGTH			9U
+#define GPRS_ACTIVATE_RRES_LENGTH			4U
+#define GPRS_ATTACH_RRES_LENGTH				4U
+#define TCP_SET_CONTEXT_RRES_LENGTH			4U
+#define TCP_DISABLE_MUX_RRES_LENGTH			4U
+#define TCP_SET_MODE_RRES_LENGTH			4U
+#define TCP_SET_DNSIP_RRES_LENGTH			4U
+#define TCP_CLOSE_RRES_LENGTH				10U
+#define TCP_DEACTIVATE_RRES_LENGTH			10U
+
+
 /*AT Commands expected Response lengths Response lengths Macros*/
 #define AT_ERES_LENGHTH					7U
 #define STOP_ECHO_ERES_LENGTH			9U
@@ -58,6 +95,21 @@
 #define SEND_SMS_WRITE_MSG_ERES_LENGTH	7U
 #define CHECK_RECEIVED_SMS_ERES_LENGTH	6U
 #define READ_SMS_ERES_LENGTH			6U
+
+
+#define GPRS_APN_ERES_LENGTH				4U
+#define TCP_SP_INFO_ERES_LENGTH				4U
+#define TCP_CONNECT_ERES_LENGTH				18U
+#define INIT_SEND_SERVER_MSG_ERES_LENGTH	3U
+#define SEND_SERVER_MSG_ERES_LENGTH			9U
+#define GPRS_ACTIVATE_ERES_LENGTH			4U
+#define GPRS_ATTACH_ERES_LENGTH				4U
+#define TCP_SET_CONTEXT_ERES_LENGTH			4U
+#define TCP_DISABLE_MUX_ERES_LENGTH			4U
+#define TCP_SET_MODE_ERES_LENGTH			4U
+#define TCP_SET_DNSIP_ERES_LENGTH			4U
+#define TCP_CLOSE_ERES_LENGTH				10U
+#define TCP_DEACTIVATE_ERES_LENGTH			10U
 
 
 /******************************************************/
@@ -606,6 +658,717 @@ GSM_DriverCheckType GSM_Driver_ATCMD_ReadSMS(uint8_t MsgLength)
 	return RetVar;	
 }
 
+/********************************************************************************************************************/
+
+/*
+ * This function used to set the APN for the GPRS Servies provider
+ *Inputs:
+ *	- ServiceProviderAPN 	: a pointer to the APN array 
+ *	- ServiceProviderAPNLength	: the length of the APN
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_GPRS_APN(uint8_t* ServiceProviderAPN, uint8_t ServiceProviderAPNLength)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+	uint8_t Index; //loop index
+	uint8_t Offset = 18;
+
+	uint8_t CommandToSend[GPRS_APN_CMD_LENGTH] = {'A','T','+','C','G','D','C','O','N','T','=','1',',','"','I','P','"',',','"'};//the command to be sent
+
+	//concatenate the phone number with the command
+	for(Index = 0; Index < ServiceProviderAPNLength; Index++)
+	{
+		Offset++;
+		CommandToSend[Offset] = ServiceProviderAPN[Index];
+	}
+
+	Offset++;
+	CommandToSend[Offset] = '"';
+	Offset++;
+	CommandToSend[Offset] = '\r';
+	
+	
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+	
+	ReceivedResponseLength = GPRS_APN_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = GPRS_APN_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, (Offset + 1), ConfigPtr->UartChannelId);
+
+
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to set the information for the TCP Servies provider
+ *Inputs:
+ *	- ServiceProviderAPN 	: a pointer to the APN array 
+ *	- ServiceProviderAPNLength	: the length of the APN
+ *	- ServiceProviderUserName 	: a pointer to the user name array 
+ *	- ServiceProviderUserNameLength	: the length of the user name
+ *	- ServiceProviderPassWord 	: a pointer to the password array 
+ *	- ServiceProviderPassWordLength	: the length of the password
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SP_Info(uint8_t* ServiceProviderAPN, uint8_t ServiceProviderAPNLength, uint8_t* ServiceProviderUserName, uint8_t ServiceProviderUserNameLength, uint8_t* ServiceProviderPassWord, uint8_t ServiceProviderPassWordLength)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+	uint8_t Index; //loop index
+
+	uint8_t Offset = 12;//a temperary variable to hold the value of index
+
+	uint8_t CommandToSend[TCP_SP_INFO_CMD_LENGTH] = {'A','T','+','Q','I','C','S','G','P','=','1',',','"'};//the command to be sent
+
+	//concatenate the phone number with the command
+	for(Index = 0; Index < ServiceProviderAPNLength; Index++)
+	{
+		Offset++;
+		CommandToSend[Offset] = ServiceProviderAPN[Index];
+	}
+	Offset++;
+	CommandToSend[Offset] = '"';
+	Offset++;
+	CommandToSend[Offset] = ',';
+	Offset++;
+	CommandToSend[Offset] = '"';
+	
+
+	//concatenate the phone number with the command
+	for(Index = 0; Index < ServiceProviderUserNameLength; Index++)
+	{
+		Offset++;
+		CommandToSend[Offset] = ServiceProviderUserName[Index];
+	}
+	Offset++;
+	CommandToSend[Offset] = '"';
+	Offset++;
+	CommandToSend[Offset] = ',';
+	Offset++;
+	CommandToSend[Offset] = '"';
+
+	//concatenate the phone number with the command
+	for(Index = 0; Index < ServiceProviderPassWordLength; Index++)
+	{
+		Offset++;
+		CommandToSend[Offset] = ServiceProviderPassWord[Index];
+	}
+
+	Offset++;
+	CommandToSend[Offset] = '"';
+	Offset++;
+	CommandToSend[Offset] = '\r';
+
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+
+	ReceivedResponseLength = TCP_SP_INFO_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_SP_INFO_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, (Offset + 1), ConfigPtr->UartChannelId);
+	
+	
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to set the IP address and port for the  server and connect to it
+ *Inputs:
+ *	- IP_Address 	: a pointer to the IP address array 
+ *	- IP_AddressLength	: the length of the IP address
+ *	- PortNum 	: a pointer to the port number array 
+ *	- PortNumLength	: the length of the port number
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_Connect(uint8_t* IP_Address, uint8_t IP_AddressLength, uint8_t* PortNum, uint8_t PortNumLength)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+	uint8_t Index; //loop index
+
+	uint8_t Offset = 16;//a temperary variable to hold the value of index
+
+	uint8_t CommandToSend[TCP_CONNECT_CMD_LENGTH] = {'A','T','+','Q','I','O','P','E','N','=','"','T','C','P','"',',','"'};//the command to be sent
+
+	//concatenate the phone number with the command
+	for(Index = 0; Index < IP_AddressLength; Index++)
+	{
+		Offset++;
+		CommandToSend[Offset] = IP_Address[Index];
+	}
+
+	Offset++;
+	CommandToSend[Offset] = '"';
+	Offset++;
+	CommandToSend[Offset] = ',';
+	Offset++;
+	CommandToSend[Offset] = '"';
+	
+
+	//concatenate the phone number with the command
+	for(Index = 0; Index < PortNumLength; Index++)
+	{
+		Offset++;
+		CommandToSend[Offset] = PortNum[Index];
+	}
+
+	Offset++;
+	CommandToSend[Offset] = '"';
+	Offset++;
+	CommandToSend[Offset] = '\r';
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3] = 'K';
+	ExpectedResponse[4] = '\r';
+	ExpectedResponse[5] = '\n';
+	ExpectedResponse[6] = '\r';
+	ExpectedResponse[7] = '\n';
+	ExpectedResponse[8] = 'C';
+	ExpectedResponse[9] = 'O';
+	ExpectedResponse[10] = 'N';
+	ExpectedResponse[11] = 'N';
+	ExpectedResponse[12] = 'E';
+	ExpectedResponse[13] = 'C';
+	ExpectedResponse[14] = 'T';
+	ExpectedResponse[15] = ' ';
+	ExpectedResponse[16] = 'O';
+	ExpectedResponse[17] = 'K';
+
+
+	ReceivedResponseLength = TCP_CONNECT_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_CONNECT_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, (Offset + 1), ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to start sending an message to a server from GSM module
+ *Inputs:NONE
+ * Output:
+ *       - an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_InitSendServerMsg(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[INIT_SEND_SERVER_MSG_CMD_LENGTH] = {'A','T','+','Q','I','S','E','N','D','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = '>';
+
+
+	ReceivedResponseLength = INIT_SEND_SERVER_MSG_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = INIT_SEND_SERVER_MSG_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, INIT_SEND_SERVER_MSG_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to send an message to a server from GSM module
+ *Inputs:
+ *	- Msg		: a pointer the message + (Ctrl+Z) or (ascii: 26)
+ *	- MsgLengrh	: the length of the message + 1 (Ctrl+Z)
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_SendServerMsg(uint8_t* Msg, uint8_t MsgLength)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'S';
+	ExpectedResponse[3] = 'E';
+	ExpectedResponse[4] = 'N';
+	ExpectedResponse[5] = 'D';
+	ExpectedResponse[6] = ' ';
+	ExpectedResponse[7] = 'O';
+	ExpectedResponse[8] = 'K';
+
+	ReceivedResponseLength = SEND_SERVER_MSG_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = SEND_SERVER_MSG_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(Msg, MsgLength, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to ativate the GPRS
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_GPRS_Activate(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[GPRS_ACTIVATE_CMD_LENGTH] = {'A','T','+','C','G','A','C','T','=','1',',','1','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+	ReceivedResponseLength = GPRS_ACTIVATE_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = GPRS_ACTIVATE_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, GPRS_ACTIVATE_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to attach the GSM to the GPRS network
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_GPRS_Attach(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[GPRS_ATTACH_CMD_LENGTH] = {'A','T','+','C','G','A','T','T','=','1','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+	ReceivedResponseLength = GPRS_ATTACH_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = GPRS_ATTACH_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, GPRS_ATTACH_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to set the TCP context
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SetContext(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[TCP_SET_CONTEXT_CMD_LENGTH] = {'A','T','+','Q','I','F','G','C','N','T','=','0','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+	ReceivedResponseLength = TCP_SET_CONTEXT_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_SET_CONTEXT_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, TCP_SET_CONTEXT_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to disable the TCP Multiplexer
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_DisableMUX(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[TCP_DISABLE_MUX_CMD_LENGTH] = {'A','T','+','Q','I','M','U','X','=','0','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+	ReceivedResponseLength = TCP_DISABLE_MUX_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_DISABLE_MUX_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, TCP_DISABLE_MUX_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to set the mode of TCP
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SetMode(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[TCP_SET_MODE_CMD_LENGTH] = {'A','T','+','Q','I','M','O','D','E','=','0','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+	ReceivedResponseLength = TCP_SET_MODE_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_SET_MODE_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, TCP_SET_MODE_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to set the TCP DNSIP mode
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_SetDNSIP(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[TCP_SET_DNSIP_CMD_LENGTH] = {'A','T','+','Q','I','D','N','S','I','P','=','0','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'O';
+	ExpectedResponse[3]	= 'K';
+
+	ReceivedResponseLength = TCP_SET_DNSIP_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_SET_DNSIP_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, TCP_SET_DNSIP_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to close the TCP connection
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_Close(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[TCP_CLOSE_CMD_LENGTH] = {'A','T','+','Q','I','C','L','O','S','E','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'C';
+	ExpectedResponse[3]	= 'L';
+	ExpectedResponse[4]	= 'O';
+	ExpectedResponse[5]	= 'S';
+	ExpectedResponse[6]	= 'E';
+	ExpectedResponse[7]	= ' ';
+	ExpectedResponse[8]	= 'O';
+	ExpectedResponse[9]	= 'K';
+
+	ReceivedResponseLength = TCP_CLOSE_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_CLOSE_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, TCP_CLOSE_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to deactivate the TCP connection
+ *Inputs:NONE
+ * Output:
+ *	- an indication of the success of the function
+*/
+
+GSM_DriverCheckType GSM_Driver_ATCMD_TCP_Deactivate(void)
+{
+	//declarations
+	GSM_DriverCheckType RetVar = GSM_DRIVER_OK;// variable to indicate the success of the AT command
+	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the transmission beginning
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	uint8_t CommandToSend[TCP_DEACTIVATE_CMD_LENGTH] = {'A','T','+','Q','I','D','E','A','C','T','\r'};//the command to be sent
+
+	//assign the expected response 
+	ExpectedResponse[0] = '\r';
+	ExpectedResponse[1] = '\n';
+	ExpectedResponse[2] = 'C';
+	ExpectedResponse[3]	= 'L';
+	ExpectedResponse[4]	= 'O';
+	ExpectedResponse[5]	= 'S';
+	ExpectedResponse[6]	= 'E';
+	ExpectedResponse[7]	= ' ';
+	ExpectedResponse[8]	= 'O';
+	ExpectedResponse[9]	= 'K';
+
+	ReceivedResponseLength = TCP_DEACTIVATE_RRES_LENGTH;//assign the length of the Received Response
+	ExpectedResponseLength = TCP_DEACTIVATE_ERES_LENGTH;//assign the length of the expectedResponse
+
+	//start the transmission of the command
+	UART_Check = UART_StartSilentTransmission(CommandToSend, TCP_DEACTIVATE_CMD_LENGTH, ConfigPtr->UartChannelId);
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	//if the the start of transmission wasn't successful
+	if(UART_Check == UART_NOK)
+	{
+		//transmission wasn't successful
+		RetVar = GSM_DRIVER_NOK;
+	}
+	else{/*RetVar is initialized to OK so no action is needed here*/}
+
+	#endif
+
+	return RetVar;
+}
+
+/*
+ * This function used to Stop any inprogress at command
+ *Inputs:NONE 
+ * Output:NONE
+*/
+
+void GSM_Driver_ATCMD_Stop(void)
+{
+	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
+
+	UART_StopCrntReception(ConfigPtr->UartChannelId);
+}
+
 /***********************************************************************************
 **********				GSM Driver UART call back functions					********
 ***********************************************************************************/
@@ -620,7 +1383,7 @@ void GSM_DriverTxCallBackFn(void)
 {
 	UART_ChkType UART_Check = UART_OK;// variable to indicate the success of the reception begin
 	GSM_DriverCheckType GSM_DriverCheck = GSM_DRIVER_OK;// variable to indicate the success of the command
-
+				
 	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
 
 	//start receiving the response of the command 
@@ -651,7 +1414,7 @@ void GSM_DriverRxCallBackFn(void)
 	GSM_DriverCheckType GSM_DriverCheck = GSM_DRIVER_NOK;// variable to indicate the success of the reception begin
 
 	const GSM_DriverConfigType* ConfigPtr = &GSM_DriverConfigParam;//declare a pointer to structure of the GSM_ConfigType
-
+		
 	//compare the received response with the expected response 
 	GSM_DriverCheck = StrComp(ReceivedResponse, ExpectedResponse, ExpectedResponseLength);
 
@@ -693,3 +1456,5 @@ static GSM_DriverCheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint8_t Length)
 
 	return RetVar;
 }
+
+
