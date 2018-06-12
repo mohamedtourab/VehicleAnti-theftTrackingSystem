@@ -13,5 +13,5 @@
 #define _ELM327_CONFIG_H_
 
 #define ELM327_CYCLIC_TIME	10U
-
+#define ELM327_ERROR_ID			2U
 #endif

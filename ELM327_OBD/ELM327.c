@@ -16,7 +16,7 @@
 **********							Macros									********
 ***********************************************************************************/
 
-#define ELM327_EXPIRE_TIME	20000U
+#define ELM327_EXPIRE_TIME	10000U
 
 #define ELM327_T_EXP	(ELM327_EXPIRE_TIME/ELM327_CYCLIC_TIME)
 
@@ -75,39 +75,6 @@
 ***********************************************************************************/
 
 /*
- * This function is a FSM to reset the system to default
- * Inputs:NONE
- * Output:
- *		- an indication of the success of the function
-*/
-static ELM327_CheckType ResetDefaults(void);
-
-/*
- * This function is a FSM to read the speed of the vehicle
- * Inputs:NONE
- * Output:
- *		- an indication of the success of the function
-*/
-static ELM327_CheckType ReadSpeed(void);
-
-/*
- * This function is a FSM to read the rpm of the vehicle
- * Inputs:NONE
- * Output:
- *		- an indication of the success of the function
-*/
-static ELM327_CheckType Read_RPM(void);
-
-/*
- * This function is a FSM to read the rpm of the vehicle
- * Inputs:NONE
- * Output:
- *		- an indication of the success of the function
-*/
-static ELM327_CheckType ReadBatteryState(void);
-
-/********************************************************************************/
-/*
  * This function used to establish the communication with the ELM327 module
  *Inputs:NONE
  * Output:
@@ -157,8 +124,38 @@ static void ELM327_ATCMD_Stop(void);
 */
 static ELM327_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint8_t Length);
 
+/*********************************************************************************/
+/*
+ * This function is a FSM to reset the system to default
+ * Inputs:NONE
+ * Output:
+ *		- an indication of the success of the function
+*/
+static ELM327_CheckType ResetDefaults(void);
 
+/*
+ * This function is a FSM to read the speed of the vehicle
+ * Inputs:NONE
+ * Output:
+ *		- an indication of the success of the function
+*/
+static ELM327_CheckType ReadSpeed(void);
 
+/*
+ * This function is a FSM to read the rpm of the vehicle
+ * Inputs:NONE
+ * Output:
+ *		- an indication of the success of the function
+*/
+static ELM327_CheckType Read_RPM(void);
+
+/*
+ * This function is a FSM to read the rpm of the vehicle
+ * Inputs:NONE
+ * Output:
+ *		- an indication of the success of the function
+*/
+static ELM327_CheckType ReadBatteryState(void);
 
 
 /***********************************************************************************
@@ -183,10 +180,6 @@ static uint8_t HelperState;		//to set the state of the helper functions
 static uint8_t ManageState;		//set the state of Manager function
 
 static uint16_t MaximumResponseTimeCounter;		//counter used to break from waiting response if the response time exceeds a certain limit
-
-static int16_t* Global_VehicleSpeed;	//global variable used to hold the vehicle speed sent by user
-static int16_t* Global_VehicleRPM;		//global variable used to hold the vehicle RPM sent by user
-static uint8_t* Global_BatteryState;	//global variable used to hold the vehicle battery state sent by user
 
 /***********************************************************************************
 **********				GSM  Driver functions' bodies                      ********
@@ -219,7 +212,7 @@ void ELM327_Init(void)
  * This function is used to Reset to defaults
  *Inputs:NONE
  * Output:
- 			-indication of success of the function
+ *			-indication of success of the function
 */
 ELM327_CheckType ELM327_ResetDefaults(void)
 {
@@ -244,16 +237,14 @@ ELM327_CheckType ELM327_ResetDefaults(void)
  * This function is used to Read the speed
  *Inputs:NONE
  * Output:
- 			-indication of success of the function
+ *			-indication of success of the function
 */
-ELM327_CheckType ELM327_GetVehicleSpeed(int16_t* VehicleSpeed)
+ELM327_CheckType ELM327_GetVehicleSpeed(void)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
 	if(ReadSpeedFlag == 0)						//check if the flag is raised already
 	{
-		Global_VehicleSpeed = VehicleSpeed;		//assign the global pointer with the value sent by user
-
 		ReadSpeedFlag = 1;						//rise the flag
 
 		RetVar = ELM327_OK;						//return ok if the flag is raised
@@ -272,16 +263,14 @@ ELM327_CheckType ELM327_GetVehicleSpeed(int16_t* VehicleSpeed)
  * This function is used to Read the RPM 
  *Inputs:NONE
  * Output:
- 			-indication of success of the function
+ *			-indication of success of the function
 */
-ELM327_CheckType ELM327_GetVehicleRPM(int16_t* VehicleRPM)
+ELM327_CheckType ELM327_GetVehicleRPM(void)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
 	if(Read_RPM_Flag == 0)					//check if the flag is raised already
 	{
-		Global_VehicleRPM = VehicleRPM;		//assign the global pointer with the value sent by user
-
 		Read_RPM_Flag = 1;					//rise the flag
 
 		RetVar = ELM327_OK;					//return ok if the flag is raised
@@ -300,16 +289,14 @@ ELM327_CheckType ELM327_GetVehicleRPM(int16_t* VehicleRPM)
  * This function is used to Read the state of the battery
  *Inputs:NONE
  * Output:
- 			-indication of success of the function
+ *			-indication of success of the function
 */
-ELM327_CheckType ELM327_GetVehicleBatteryState(uint8_t* BatteryState)
+ELM327_CheckType ELM327_GetVehicleBatteryState(void)
 {
 	ELM327_CheckType RetVar = ELM327_BUSY;
 
 	if(ReadBatterStateFlag == 0)				//check if the flag is raised already
 	{
-		Global_BatteryState = BatteryState;		//assign the global pointer with the value sent by user
-
 		ReadBatterStateFlag = 1;				//rise the flag	
 
 		RetVar = ELM327_OK;						//return ok if the flag is raised
@@ -332,6 +319,10 @@ ELM327_CheckType ELM327_GetVehicleBatteryState(uint8_t* BatteryState)
 void ELM327_ManageOngoingOperation(void)
 {
 	ELM327_CheckType ELM327_Check = ELM327_BUSY;					//variable to indicate the success of the command
+
+	const ELM327_ConfigType* ConfigPtr = &ELM327_ConfigParam;	//declare a pointer to structure of the ELM327_ConfigType
+	
+	uint16_t VehicleData = 0; //avariable to hold any data from the vehicle after processing it
 
 	switch(ManageState)
 	{
@@ -394,11 +385,40 @@ void ELM327_ManageOngoingOperation(void)
 
 			if(ELM327_Check == ELM327_OK)
 			{
+				if(ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] == '\r')		//check if the vehicle started 
+				{
+					/*this means that the vehicle not yet started*/
+					VehicleData = -1;									//return -1 for used as indication that the car not started
+				}
+				else 															//this means the car is started (speed may = 0 [if not yet moved] , or speed > zero [started to move])
+				{
+					/*this algorithm used to convert the ASCII answer of the module to decimel numbers*/
+					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] <= ASCII_OF_NINE))
+					{
+						VehicleData = ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_ZERO;
+					}
+					else
+					{
+						VehicleData = (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_A)+10;
+					}
+
+					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] <= ASCII_OF_NINE))
+					{
+						VehicleData += (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_ZERO)*16;
+					}
+					else
+					{
+						VehicleData += ((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_A)+10)*16;
+					}
+				}
+
 				ReadSpeedFlag = 0;
 
 				ManageState = ELM327_MANAGE_IDLE;
 
 				HelperState = SEND_CMD;
+
+				ConfigPtr->GetVehicleSpeedCallBackFn(VehicleData);
 			}
 			else if(ELM327_Check == ELM327_NOK)
 			{
@@ -421,11 +441,43 @@ void ELM327_ManageOngoingOperation(void)
 
 			if(ELM327_Check == ELM327_OK)
 			{
+				
+				if(ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] == '\r')			//check if the vehicle started
+				{
+					/*means vehicle not started yet*/
+					VehicleData = -1;			//retun -1 as indication of not started
+				}
+				else
+				{
+					/*means that the vehicle already started */
+					if((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] <= ASCII_OF_NINE))
+					{
+						VehicleData = ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1]-ASCII_OF_ZERO;
+					}
+					else
+					{
+						VehicleData = (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1]-ASCII_OF_A)+10;
+					}
+
+					if((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2] <= ASCII_OF_NINE))
+					{
+						VehicleData += (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2]-ASCII_OF_ZERO)*16;
+					}
+					else
+					{
+						VehicleData += ((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2]-ASCII_OF_A)+10)*16;
+					}
+
+					VehicleData <<= 6;	//equation from data sheet to estimate the RPM from output parameters
+				}
+				
 				Read_RPM_Flag = 0;
 
 				ManageState = ELM327_MANAGE_IDLE;
 
 				HelperState = SEND_CMD;
+
+				ConfigPtr-> GetVehicleRPMCallBackFn(VehicleData);
 			}
 			else if(ELM327_Check == ELM327_NOK)
 			{
@@ -448,11 +500,25 @@ void ELM327_ManageOngoingOperation(void)
 
 			if(ELM327_Check == ELM327_OK)
 			{
+
+				if(ReceivedResponse[BATTERY_STATE_RRES_LENGTH-1] == '\r')		//check if the device is connected to the car
+				{
+					/*means that the device is not connected*/
+					VehicleData = 0;	//indication that the device is not connected
+				}
+				else
+				{
+					/*means that the device is connected to the car*/
+					VehicleData = 1;	//indication that the device is connected
+				}
+
 				ReadBatterStateFlag = 0;
 
 				ManageState = ELM327_MANAGE_IDLE;
 
 				HelperState = SEND_CMD;
+
+				ConfigPtr -> GetVehicleBatteryStateCallBackFn(VehicleData);
 			}
 			else if(ELM327_Check == ELM327_NOK)
 			{
@@ -471,6 +537,10 @@ void ELM327_ManageOngoingOperation(void)
 
 		case ELM327_MANAGE_ERROR :
 		{
+			ConfigPtr -> ErrorCallBackFn(ELM327_ERROR_ID);
+			ManageState = ELM327_MANAGE_IDLE;
+
+
 			break;
 		}
 
@@ -495,12 +565,10 @@ void ELM327_ManageOngoingOperation(void)
 
 void ELM327_TxCallBackFn(void)
 {
-	UART_ChkType UART_Check = UART_OK;							//variable to indicate the success of the reception begin
-	ELM327_CheckType ELM327_Check = ELM327_OK;					//variable to indicate the success of the command
 	const ELM327_ConfigType* ConfigPtr = &ELM327_ConfigParam;	//declare a pointer to structure of the ELM327_ConfigType
 
 	//start receiving the response of the command 
-	UART_Check = UART_StartSilentReception(ReceivedResponse, ReceivedResponseLength, ConfigPtr->UartChannelId);
+	UART_StartSilentReception(ReceivedResponse, ReceivedResponseLength, ConfigPtr->UartChannelId);
 }
 
 
@@ -525,6 +593,12 @@ void ELM327_RxCallBackFn(void)
 	{
 		ReceiveSuccessFlag = 1 ;
 	}
+
+	#ifdef DEVELOPMENT_MODE_ENABLE //check if the development mode is enabled
+
+	UART_StartSilentTransmission (ReceivedResponse,ReceivedResponseLength,1);
+
+	#endif
 }
 
 
@@ -599,8 +673,6 @@ static ELM327_CheckType ResetDefaults(void)
 	return RetVar;
 }
 
-
-
 /*
  * This function is a FSM to read the speed of the vehicle
  * Inputs:NONE
@@ -633,32 +705,6 @@ static ELM327_CheckType ReadSpeed(void)
 
 				if(ReceiveSuccessFlag == 1)
 				{
-					if(ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] == '\r')		//check if the vehicle started 
-					{
-						/*this means that the vehicle not yet started*/
-						*Global_VehicleSpeed = -1;									//return -1 for used as indication that the car not started
-					}
-					else 															//this means the car is started (speed may = 0 [if not yet moved] , or speed > zero [started to move])
-					{
-						/*this algorithm used to convert the ASCII answer of the module to decimel numbers*/
-						if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] <= ASCII_OF_NINE))
-						{
-							*Global_VehicleSpeed = ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_ZERO;
-						}
-						else
-						{
-							*Global_VehicleSpeed = (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_A)+10;
-						}
-
-						if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] <= ASCII_OF_NINE))
-						{
-							*Global_VehicleSpeed += (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_ZERO)*16;
-						}
-						else
-						{
-							*Global_VehicleSpeed += ((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_A)+10)*16;
-						}
-					}
 
 					ReceiveSuccessFlag = 0;		//reset the flag for next use
 
@@ -729,34 +775,6 @@ static ELM327_CheckType Read_RPM(void)
 
 				if(ReceiveSuccessFlag == 1)
 				{
-					if(ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] == '\r')			//check if the vehicle started
-					{
-						/*means vehicle not started yet*/
-						*Global_VehicleRPM = -1;			//retun -1 as indication of not started
-					}
-					else
-					{
-						/*means that the vehicle already started */
-						if((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] <= ASCII_OF_NINE))
-						{
-							*Global_VehicleRPM = ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1]-ASCII_OF_ZERO;
-						}
-						else
-						{
-							*Global_VehicleRPM = (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1]-ASCII_OF_A)+10;
-						}
-
-						if((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2] <= ASCII_OF_NINE))
-						{
-							*Global_VehicleRPM += (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2]-ASCII_OF_ZERO)*16;
-						}
-						else
-						{
-							*Global_VehicleRPM += ((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2]-ASCII_OF_A)+10)*16;
-						}
-
-						*Global_VehicleRPM <<= 6;	//equation from data sheet to estimate the RPM from output parameters
-					}
 					ReceiveSuccessFlag = 0;
 
 					RetVar = ELM327_OK;
@@ -826,16 +844,6 @@ static ELM327_CheckType ReadBatteryState(void)
 
 				if(ReceiveSuccessFlag == 1)
 				{
-					if(ReceivedResponse[BATTERY_STATE_RRES_LENGTH-1] == '\r')		//check if the device is connected to the car
-					{
-						/*means that the device is connected*/
-						*Global_BatteryState = 0;	//indication that the device is not connected
-					}
-					else
-					{
-						/*means that the device is not connected to the car*/
-						*Global_BatteryState = 1;	//indication that the device is connected
-					}
 					ReceiveSuccessFlag = 0;
 					RetVar = ELM327_OK;
 				}
@@ -871,7 +879,7 @@ static ELM327_CheckType ReadBatteryState(void)
 	return RetVar;
 }
 
-
+//**********************************************************************************//
 
 /*
  * This function used to establish the communication with the ELM327 module
@@ -1064,6 +1072,18 @@ static ELM327_CheckType ATCMD_Battery_State(void)
 	return RetVar;
 }
 
+/*
+ *	This function is used to stop the Uart transmission
+ *	Inputs:NONE
+ *	Output:NONE
+ **/
+static void ELM327_ATCMD_Stop(void)
+{
+	const ELM327_ConfigType* ConfigPtr = &ELM327_ConfigParam;	//declare a pointer to structure of the GSM_ConfigType
+
+	UART_StopCrntReception(ConfigPtr->UartChannelId);
+}
+
 
 /*
  * This function used to compare two strings
@@ -1095,14 +1115,3 @@ static ELM327_CheckType StrComp(uint8_t* Str1, uint8_t* Str2, uint8_t Length)
 	return RetVar;
 }
 
-/*
- *	This function is used to stop the Uart transmission
- *	Inputs:NONE
- *	Output:NONE
- **/
-static void ELM327_ATCMD_Stop(void)
-{
-	const ELM327_ConfigType* ConfigPtr = &ELM327_ConfigParam;	//declare a pointer to structure of the GSM_ConfigType
-
-	UART_StopCrntReception(ConfigPtr->UartChannelId);
-}
