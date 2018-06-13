@@ -15,13 +15,12 @@ void Test (void)
 void GPS_CallBack (void)
 {
 	FoundFlag = 1;
-	GPIO_Write(4, PIN_MASK_0, HIGH);
 }
 
 void Error_CallBack(void)
 {
 	ErrorFlag = 1;
-	GPIO_Write(4, PIN_MASK_1, HIGH);
+	GPIO_Write(4, PIN_MASK_12, HIGH);
 }
 
 
@@ -30,7 +29,7 @@ int main (void)
 	uint8_t State = 0;
 	Location Map = {{0},0,{0},0};
 	GPIO_Init();
-	vDelay_ms(10);
+	Delay_ms(10);
 	GPS_Init();
 	UART_Init();
 
@@ -44,7 +43,7 @@ int main (void)
 				if (FoundFlag == 0)
 				{
 					GPS_ManagOnGoingOperation();
-					vDelay_ms(10);
+					Delay_ms(10);
 				}
 				else
 				{
