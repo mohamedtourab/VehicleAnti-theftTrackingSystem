@@ -14,13 +14,15 @@
 #define ERROR_HANDLER_H
 
 #include "ErrorHandlerConfig.h"
-#include "PWM.h"
+#include "TIMER.h"
 
 extern const uint8_t ErrorHandlerConfigParam [ERROR_HANDLER_NUMBER_OF_ERROR_SOURCES];
 
 /***********************************************************************************
 **********						Functions prototypes						********
 ***********************************************************************************/
+
+void ErrorHandler_Init(void);
 
 /*
  * This callback function used to apply a dimming PWM signal on a GPIO pin in case of error
@@ -36,7 +38,7 @@ void ErrorHandler_Callbackfn (uint8_t ErrorId);
  *		-ErrorId :	the ID of the error
  * Output:NONE
 */
-void ErrorHandler_SetError(ErrorId);
+void ErrorHandler_SetError(uint8_t ErrorId);
 
 /*
  * This function used to deactivate a dimming PWM signal from a GPIO pin to clear the error indecatopn
@@ -45,6 +47,7 @@ void ErrorHandler_SetError(ErrorId);
  * Output:NONE
 */
 
-void ErrorHandler_ClearError(ErrorId);
+void ErrorHandler_ClearError(uint8_t ErrorId);
 
+void ErrorHandler_ManagOnGoingOperation(void);
 #endif

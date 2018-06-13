@@ -12,6 +12,12 @@
 #include "ErrorHandler.h"
 
 /*************************************************************************************
+**********							Global Variables						**********
+*************************************************************************************/
+uint8_t ErrorFlags[ERROR_HANDLER_NUMBER_OF_ERROR_SOURCES] = {0};
+
+
+/*************************************************************************************
 **********					Error handler callback function					**********
 *************************************************************************************/
 
@@ -24,22 +30,31 @@
 void ErrorHandler_Callbackfn (uint8_t ErrorId)
 {
 
-	PWM_Start(ErrorHandlerConfigParam[ErrorId]);
+	ErrorFlags[ErrorId] = 1;
 }
 
 
 /***********************************************************************************
 **********					Error handler functions' bodies					********
 ***********************************************************************************/
+void ErrorHandler_Init(void)
+{
+	uint8_t LoopIndex = 0;
+	for (LoopIndex = 0; LoopIndex < ERROR_HANDLER_NUMBER_OF_ERROR_SOURCES; LoopIndex++)
+	{
+		ErrorFlags[LoopIndex] = 0;
+	}
+}
+
 /*
  * This function used to apply a dimming PWM signal on a GPIO pin to indecate an error
  * Inputs:
  *		-ErrorId :	the ID of the error
  * Output:NONE
 */
-void ErrorHandler_SetError(ErrorId)
+void ErrorHandler_SetError(uint8_t ErrorId)
 {
-	PWM_Start(ErrorHandlerConfigParam[ErrorId]);
+	ErrorFlags[ErrorId] = 1;
 }
 
 /*
@@ -49,7 +64,23 @@ void ErrorHandler_SetError(ErrorId)
  * Output:NONE
 */
 
-void ErrorHandler_ClearError(ErrorId)
+void ErrorHandler_ClearError(uint8_t ErrorId)
 {
-	PWM_Clear(ErrorHandlerConfigParam[ErrorId]);
+	ErrorFlags[ErrorId] = 0;
+}
+
+void ErrorHandler_ManagOnGoingOperation(void)
+{
+	uint8_t LoopIndex = 0;
+	for (LoopIndex = 0; LoopIndex < ERROR_HANDLER_NUMBER_OF_ERROR_SOURCES; LoopIndex++)
+	{
+		if(ErrorFlags[LoopIndex] == 1)
+		{
+			PWM_Start (ErrorHandlerConfigParam [LoopIndex]);
+		}
+		else
+		{
+			PWM_Clear (ErrorHandlerConfigParam [LoopIndex]);
+		}
+	}
 }

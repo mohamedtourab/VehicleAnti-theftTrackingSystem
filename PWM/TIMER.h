@@ -140,4 +140,5 @@ TIMER_ChkType TIMER_Init (void);
 */
 TIMER_ChkType PWM_Start (uint32_t ChannelId);
 
+TIMER_ChkType PWM_Clear (uint32_t ChannelId);
 #endif

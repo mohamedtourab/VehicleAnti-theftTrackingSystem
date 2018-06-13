@@ -160,7 +160,7 @@ TIMER_ChkType TIMER_Init (void)
 
     		// calculate the required value corresponding to the duty cycle and set the CCRx register with the calculated value
             Duty[LoopIndex] = CfgPtr->DutyCycle;
-    		TIMx_CCRx(CfgPtr->TimerId,((CfgPtr->TimerChannel)-1)) = PULSE_LENGTH(PERIOD(CfgPtr->PWMFrequency),CfgPtr->DutyCycle);
+    		TIMx_CCRx(CfgPtr->TimerId,((CfgPtr->TimerChannel)-1)) = PULSE_LENGTH(PERIOD(CfgPtr->PWMFrequency),0);
 
     		// set the polarity of the channels
     		TIMx_CCER(CfgPtr->TimerId) = 0;
@@ -174,6 +174,10 @@ TIMER_ChkType TIMER_Init (void)
 
     		// enable the counter
     		SET_BIT(TIMx_CR1(CfgPtr->TimerId),CEN);
+
+            // Enable the output pin mode
+            SET_BIT(TIMx_CCER(CfgPtr->TimerId),(((CfgPtr->TimerChannel)-1)<<2));
+
             // Change the state of the Channel to be TIMER_STATE_INIT
     		ChannelsState[LoopIndex] = TIMER_STATE_INIT;
 
@@ -206,12 +210,10 @@ TIMER_ChkType PWM_Start (uint32_t ChannelId)
     if (ChannelId < TIMER_CHANNEL_NUM)
     {
         CfgPtr = &TIMER_ConfigParam[ChannelId];
-        // check teh Channel State
+        // check the Channel State
         // if state is Init which means that it is the first time to start the PWM
         if (ChannelsState[ChannelId] == TIMER_STATE_INIT)
         {
-        	// Enable the output pin mode
-        	SET_BIT(TIMx_CCER(CfgPtr->TimerId),(((CfgPtr->TimerChannel)-1)<<2));
             // change the state to be INPROGRESS to indicate that this is not the first time to call the function
         	ChannelsState[ChannelId] = TIMER_STATE_INPROGRESS;
         }
@@ -244,6 +246,31 @@ TIMER_ChkType PWM_Start (uint32_t ChannelId)
     }
     else
     {
+        RetVar = TIMER_NOK;
+    }
+    return RetVar;
+}
+
+TIMER_ChkType PWM_Clear (uint32_t ChannelId)
+{
+    TIMER_ChkType RetVar;
+    const TIMER_ConfigType* CfgPtr;
+    /*Check the validity of channel ID*/
+    if (ChannelId < TIMER_CHANNEL_NUM)
+    {
+        CfgPtr = &TIMER_ConfigParam[ChannelId];
+        // check the Channel State
+        if (ChannelsState[ChannelId] == TIMER_STATE_INPROGRESS)
+        {
+            TIMx_CCRx(CfgPtr->TimerId,((CfgPtr->TimerChannel)-1)) = PULSE_LENGTH(PERIOD(CfgPtr->PWMFrequency),0);
+            ChannelsState[ChannelId] = TIMER_STATE_INIT;
+        }
+        else{/*Error Cleared so fix the duty cycle to zero*/}
+        RetVar = TIMER_OK;
+    }
+    else
+    {
+        /*error channel used*/
         RetVar = TIMER_NOK;
     }
     return RetVar;
