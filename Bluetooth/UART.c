@@ -13,7 +13,7 @@
 #include "UART.h"
 #include "GPIO.h"
 #include "STM32F4_MemMap.h"
-//#include "stm32f407xx.h"
+#include "stm32f407xx.h"
 typedef volatile uint32_t* const UART_RegAddType; // typedef for the uart register addreses which are pointer to 32 bits 
 
 /*----------------------------------------------------------------
@@ -261,14 +261,14 @@ UART_ChkType UART_StartSilentTransmission (uint8_t* TxBuffPtr,
                 /*Check if the channel Ready to start transmission*/
                 if((UartDriverState[CfgPtr->UartPerifID] & UART_STATE_INIT) == UART_STATE_INIT)
                 {
-                                                                                        #if(UART_USE_INT_TO_HANDLE == 1)
+                        #if(UART_USE_INT_TO_HANDLE == 1)
                         // USART_CR1 bit fields         Bit Number
                         //      RXNEIE                      5
                         //      TCIE                        6
                         //      TXEIE                       7
                         USART_CR1(CfgPtr->UartPerifID) |= 0x40;
-                                                                                                NVIC_EnableIRQ(UART_IRQNumber[CfgPtr->UartPerifID]);
-                                                                                        #endif
+                        NVIC_EnableIRQ(UART_IRQNumber[CfgPtr->UartPerifID]);
+                        #endif
                         // enable transmitter 
                         USART_CR1(CfgPtr->UartPerifID) |= (1 << TE);
 
@@ -283,7 +283,7 @@ UART_ChkType UART_StartSilentTransmission (uint8_t* TxBuffPtr,
 
                         // initialize Tx counter to zero
                         UartTxCount[CfgPtr->UartPerifID] = 0;
-                                                                                                USART_DR(CfgPtr->UartPerifID) = *(UartTxBuffPtr[CfgPtr->UartPerifID] + UartTxCount[CfgPtr->UartPerifID]);
+                        USART_DR(CfgPtr->UartPerifID) = *(UartTxBuffPtr[CfgPtr->UartPerifID] + UartTxCount[CfgPtr->UartPerifID]);
 
                         // return UART Ok
                         RetVar = UART_OK;
@@ -393,9 +393,9 @@ UART_ChkType UART_StartSilentReception(uint8_t* RxBuffPtr,
                 {
                         // enable receiver
                         USART_CR1(CfgPtr->UartPerifID) |= (1 << RE);
-                                                                                                #if(UART_USE_INT_TO_HANDLE == 1)
-                                                                                                NVIC_EnableIRQ(UART_IRQNumber[CfgPtr->UartPerifID]);
-                                                                                                #endif
+                        #if(UART_USE_INT_TO_HANDLE == 1)
+                        NVIC_EnableIRQ(UART_IRQNumber[CfgPtr->UartPerifID]);
+                        #endif
 
                         // save the pointer RxBuffPtr where store the received data
                         UartRxBuffPtr[CfgPtr->UartPerifID] = RxBuffPtr;
