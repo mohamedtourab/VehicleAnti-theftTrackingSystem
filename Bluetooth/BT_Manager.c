@@ -1,370 +1,194 @@
 /*
  *
  *        Authors: Wessam Adel and Mohamed Mamdouh
- *        Date: 13/3/2018
- *  Last Edited: 18/3/2018
+ *        Date: 11/6/2018
  *        Microcontroller: STM32F407VG
- *  Description: This File contains the Bluetooth Initialization and Configuration, and it needs around 700 ms to be finished
+ * 
+ *  Description: This file contains the manager of the Bluetooth module, it manages the following states:
+ * 
+ *                  -Initilization
+ *                  -Configuration
+ *                  -Transmission
+ *                  -Reception
+ *                  -Idle
+ * 
+ *               This file contains three functions:
+ *
+ *                  -BT_Manager
+ *                  -BT_StartSendingData
+ *                  -BT_StartReceivingData
 */
 
 #include "BT_Manager.h"
 
-static uint8_t TransmissionDone;
-static uint8_t ReceptionDone;
-static uint8_t FunctionCalled;
-
 /*
- ****************************************************************************** 
- *                                                                            *      
- *                                                                            *      
- *            Transmission and Reception Flags Initialization                 *  
- *                                                                            *  
- *                                                                            *  
+ ******************************************************************************
+ *                                                                            *
+ *                                                                            *
+ *                          Globals Declaration                               *
+ *                                                                            *
+ *                                                                            *
  ******************************************************************************
  */
-
-void BT_Init(void)
-{
-    TransmissionDone = 0;
-    ReceptionDone    = 0;
-    FunctionCalled = 0;
-}
+static char*    TransmittedDataPtr;
+static char*    ReceivedDataPtr;
+static uint8_t  TransmittedDataCount;
+static uint8_t  ReceivedDataCount;
+static uint8_t  StartTransmissionFlag;
+static uint8_t  StartReceptionFlag;
 
 
 /*
- ****************************************************************************** 
- *                                                                            *      
- *                                                                            *      
- *              Bluetooth Manager (BLuetooth Configuration)                   *  
- *                                                                            *  
- *                                                                            *  
+ ******************************************************************************
+ *                                                                            *
+ *                                                                            *
+ *      This function is responsible for managing the different               *
+ *      requests by the user for using the bluetooth module                   *
+ *      it uses the driver's helper function                                  *
+ *                                                                            *
+ *                                                                            *
  ******************************************************************************
  */
-
-BT_CheckType BT_Configure(void)
+void BT_Manager(void)
 {
-    static BT_State State = SET_COMMAND_MODE;
-    static BT_State OldState = SET_COMMAND_MODE;
-    static unsigned char ReceivedArray[10] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
-    BT_CheckType RetVal = BT_NOK;
+    static BT_ManagerState ManagerState = BT_INIT;
+    BT_CheckType ConfigRetVal;
+    BT_CheckType SendDataRetVal;
+    BT_CheckType GetDataRetVal;
 
-    switch(State)
+    switch(ManagerState)
     {
-        case SET_COMMAND_MODE:
+        case BT_INIT:
         {
-            UART_StartSilentTransmission("$$$",3,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-        case CHECK_TRANSMISSION_DONE:
-        {
-            if(TransmissionDone)
+            if(BT_InitFlag == 1)
             {
-
-                TransmissionDone = 0;
-                State = CHECK_RECEPTION_DONE;
-                UART_StartSilentReception(ReceivedArray,4,0);
+                ManagerState = BT_CONFIGURE;
+				
             }
             else
             {
-                UART_ManageOngoingOperation(0);
+                ManagerState = BT_INIT;
             }
 
         }
         break;
-        case CHECK_RECEPTION_DONE:
+
+        case BT_CONFIGURE:
         {
-            if(ReceptionDone)
+            ConfigRetVal = BT_Configure();
+            
+            if(ConfigRetVal == BT_OK)
             {
-                State = CHECK_RECEIVED_DATA;
-                ReceptionDone = 0;
+                ManagerState = BT_IDLE;
             }
             else
             {
-                UART_ManageOngoingOperation(0);
-            }
-
-        }
-        break;
-
-        case CHECK_RECEIVED_DATA:
-        {
-            switch(MemoryCompare(ReceivedArray,LENGTH_OF_BT_RESPONSE))
-            {
-                case CMD:
-                {
-                    if(OldState == SET_COMMAND_MODE)
-                    {
-                        State = SET_FACTORY_SETTINGS;
-                    }
-                    else{/*MISRA*/};
-                }
-                break;
-                case AOK:
-                {
-                    State = OldState + 1;
-                }
-                break;
-                case ERR:
-                {
-                    State = REBOOT;
-                }
-                break;
-                case END:
-                {
-                    State = OldState + 1;
-                }
-                break;
+                ManagerState = BT_CONFIGURE;
             }
         }
         break;
 
-        case SET_FACTORY_SETTINGS:
+        case BT_IDLE:
         {
-            UART_StartSilentTransmission("SF,1\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_DEVICE_NAME:
-        {
-
-            UART_StartSilentTransmission("SN,aloalo\r",23,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_SLAVE_MODE:
-        {
-
-            UART_StartSilentTransmission("SM,0\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_NO_AUTHENTICATION:
-        {
-
-        UART_StartSilentTransmission("SA,1\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        /*case SET_SCAN_TIME_SI:
-        {
-            UART_StartSilentTransmission("SI,0800\r",8,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-
-        case SET_SCAN_TIME_SJ:
-        {
-            UART_StartSilentTransmission("SJ,0800\r",8,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;*/
-        case DISABLE_REMOTE_CONFIGURATION:
-        {
-            UART_StartSilentTransmission("ST,0\r",5,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-        case EXIT_COMMAND_MODE:
-        {
-
-            UART_StartSilentTransmission("---\r",4,0);
-            OldState = State;
-            State = CHECK_TRANSMISSION_DONE;
-        }
-        break;
-        
-        case REBOOT:
-        {
-
-            UART_StartSilentTransmission("R,1\r",4,0);
-            if(OldState != EXIT_COMMAND_MODE )
+            if(StartTransmissionFlag == 1)
             {
-                State = SET_COMMAND_MODE;
-                OldState = SET_COMMAND_MODE;
+                ManagerState = BT_TRANSMIT;
+            }
+            else if(StartReceptionFlag == 1)
+            {
+                ManagerState = BT_RECEIVE;
             }
             else
             {
-                OldState = State;
-                RetVal = BT_OK;
-
+                ManagerState = BT_IDLE;
             }
-
         }
         break;
 
+        case BT_TRANSMIT:
+        {
+            SendDataRetVal = BT_SendData(TransmittedDataPtr, TransmittedDataCount);
+
+            if(SendDataRetVal == BT_OK)
+            {
+                ManagerState = BT_IDLE;
+                StartTransmissionFlag = 0;
+            }
+            else
+            {
+                ManagerState = BT_TRANSMIT;
+            }
+        }
+        break;
+
+        case BT_RECEIVE:
+        {
+            GetDataRetVal = BT_GetData(ReceivedDataPtr, ReceivedDataCount);
+
+            if(GetDataRetVal == BT_OK)
+            {
+                ManagerState = BT_IDLE;
+                StartReceptionFlag = 0;
+            }
+            else
+            {
+                ManagerState = BT_RECEIVE;
+            }
+        }
+        break;
     }
-
-    return RetVal;
-}
-
-
-
-
-
-/*
- ****************************************************************************** 
- *                                                                            *      
- *                                                                            *      
- *            UART Call Back Functions for Transmission and Reception         *  
- *                                                                            *  
- *                                                                            *  
- ******************************************************************************
- */
-
-void BluetoothTxDone(void)
-{
-    TransmissionDone = 1;
-}
-
-void BluetoothRxDone(void)
-{
-    ReceptionDone = 1;
-}
-
-
-/*
- ****************************************************************************** 
- *                                                                            *      
- *                                                                            *      
- *                        Memory Compare Function                             *  
- *                                                                            *  
- *                                                                            *  
- ******************************************************************************
- */
-
-BT_Response MemoryCompare(unsigned char * AT_Command, uint8_t Length)
-{
-    const unsigned char Command[NUMBER_OF_COMMANDS][3] =    {
-                                                                {'C','M','D'},
-                                                                {'A','O','K'},
-                                                                {'E','R','R'},
-                                                                {'E','N','D'}    
-                                                            };
-
-    BT_Response RetVal;
-
-    switch(AT_Command[0])
-    {
-        case Command[0][0]:
-        {
-            if((AT_Command[1] == Command[0][1]) && (AT_Command[2] == Command[0][2]) )
-            {
-                RetVal = CMD;
-            }
-        }
-        break;
-        case Command[1][0]:
-        {
-            if((AT_Command[1] == Command[1][1]) && (AT_Command[2] == Command[1][2]) )
-            {
-                RetVal = AOK;
-            }
-        }
-        break;
-        case Command[2][0]:
-        {
-            if((AT_Command[1] == Command[2][1]) && (AT_Command[2] == Command[2][2]) )
-            {
-                RetVal = ERR;
-            }
-            else if((AT_Command[1] == Command[3][1]) && (AT_Command[2] == Command[3][2]) )
-            {
-                RetVal = END;
-            }
-        }
-        break;
-        default: break;
-    }
-    return RetVal;
 }
 
 /*
- ****************************************************************************** 
- *                                                                            *      
- *                                                                            *      
- *                        Get Data Function                                   *  
- *                                                                            *  
- *                                                                            *  
+ ******************************************************************************
+ *                                                                            *
+ *                                                                            *
+ *             API to be used by the user to request sending data             *
+ *                                                                            *
+ *             -When the StartTransmissionFlag is set to ONE the manager      *
+ *              is notified and so it starts calling the driver's function    *
+ *              to start the operation                                        *
+ *                                                                            *
+ *             -When the transmission process ends successfully, the manager  *
+ *              clears the StartTransmissionFlag, and the call back function  *
+ *              choosen by the user in the BT_Config.c file is called,        *
+ *              the implementaion of the call back function                   *
+ *              is left for the user                                          *
+ *                                                                            *
+ *                                                                            *
  ******************************************************************************
  */
 
- BT_CheckType BT_GetData(char* DataReceived,uint8_t NoOfBytes)
- {
-	 BT_CheckType RetVal;
-	 static BT_DataStates state = BT_IDLE;
-	 switch(state)
-	 {
-		 case BT_IDLE:
-		 {
-			 UART_StartSilentReception(DataReceived,NoOfBytes,0);
-			 state = BT_BUSY;
-			 RetVal = BT_NOK;
-		 }
-		 break;
-		 case BT_BUSY:
-		 {
-			UART_ManageOngoingOperation(0);
-			if(ReceptionDone == 1)
-			{
-				state = BT_IDLE;
-				ReceptionDone = 0;
-				RetVal = BT_OK;
-			}
-			else
-			{
-				state = BT_BUSY;
-				RetVal = BT_NOK;
-			}
-		 }
-		 break;
-	 }
-	 return RetVal;
- }
+void BT_StartSendingData(char* DataToBeSent, uint8_t DataLength)
+{
+    StartTransmissionFlag = 1;
+    TransmittedDataPtr    = DataToBeSent;
+    TransmittedDataCount  = DataLength;
+}
 
- BT_CheckType BT_SendData(char* DataSent, uint8_t NoOfBytes)
-  {
-	 BT_CheckType RetVal;
-	 static BT_DataStates state = BT_IDLE;
-	 switch(state)
-	 {
-		 case BT_IDLE:
-		 {
-			UART_StartSilentTransmission(DataSent,NoOfBytes,0);
-			state = BT_BUSY;
-			RetVal = BT_NOK;
-			TransmissionDone = 0;
-		 }
-		 break;
-		 case BT_BUSY:
-		 {
-			UART_ManageOngoingOperation(0);
-			if(TransmissionDone == 1)
-			{
-				state = BT_IDLE;
-				TransmissionDone = 0;
-				RetVal = BT_OK;
-			}
-			else
-			{
-				state = BT_BUSY;
-				RetVal = BT_NOK;
-			}
-		 }
-		 break;
-	 }
-	 return RetVal;
- }
+/*
+ ******************************************************************************
+ *                                                                            *
+ *                                                                            *
+ *             API to be used by the user to request receiving data           *
+ *                                                                            *
+ *             -When the StartReceptionFlag is set to ONE the manager         *
+ *              is notified and so it starts calling the driver's function    *
+ *              to start the operation                                        *
+ *                                                                            *
+ *             -When the Reception process ends successfully, the manager     *
+ *              clears the StartReceptionFlag, and the call back function     *
+ *              choosen by the user in the BT_Config.c file is called,        *
+ *              the implementaion of the call back function                   *
+ *              is left for the user                                          *
+ *                                                                            *
+ *                                                                            *
+ ******************************************************************************
+ */
 
+void BT_StartReceivingData(char* ReceivedData, uint8_t DataLength)
+{
+    StartReceptionFlag = 1;
+    ReceivedDataPtr    = ReceivedData;
+    ReceivedDataCount  = DataLength;
+}
