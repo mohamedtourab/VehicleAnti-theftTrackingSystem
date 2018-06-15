@@ -22,8 +22,8 @@ const I2C_ConfigType I2C_ConfigParam[I2C_PERIPHERAL_NUMBER]=
 		I2C_MODE,                       /*choose I2C mode*/
 		DISABLE_GENERAL_CALL,           /*choose to disable the general call*/
 		ENABLE_ACK,                      /*choose to enable the acknowledgment*/
-		I2C_TxDone,
-		I2C_RxDone
+		0,
+		0
 	}
 };
 

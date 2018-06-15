@@ -29,6 +29,8 @@
  ********************************************************************************************
  */
 
+uint8_t I2C_InitFlag = 0;
+
 I2C_CheckType I2C_Init(void)
 {
     I2C_CheckType RetVal;
@@ -74,10 +76,12 @@ I2C_CheckType I2C_Init(void)
                                     I2C_CR2(ConfigPtr->I2C_Peripheral_ID) |= 1<<I2C_CR2_ITERREN_POS;
                             #endif
                             RetVal = I2C_OK;
+                            I2C_InitFlag = 1;
                     }
                     else
                     {
                             RetVal = I2C_NOK;
+                            I2C_InitFlag = 0;
                     }
     }
     return RetVal;
@@ -90,7 +94,7 @@ void I2C_GenerateStart(uint8_t Peripheral_ID)
     const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[Peripheral_ID];
     
     /*Set Stat bit in CR1*/
-    I2C_CR1(ConfigPtr->I2C_Peripheral_ID) |= 1<<I2C_CR1_START_POS;
+    I2C_CR1(ConfigPtr->I2C_Peripheral_ID) |= ((uint16_t)1<<I2C_CR1_START_POS);
 }
 
 /*
@@ -103,7 +107,7 @@ void I2C_GenerateStart(uint8_t Peripheral_ID)
  ********************************************************************************************
  */
 
-void I2C_StartStatus(uint8_t Peripheral_ID)
+I2C_CheckType I2C_StartStatus(uint8_t Peripheral_ID)
 {
     const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[Peripheral_ID];
 
@@ -129,7 +133,7 @@ void I2C_StartStatus(uint8_t Peripheral_ID)
  ********************************************************************************************
  */
 
-void I2C_SetSlaveAddress(uint8_t SlaveAddress,uint8_t WriteOrRead, uint8_t Peripheral_ID)
+void I2C_SendSlaveAddress(uint8_t SlaveAddress,uint8_t WriteOrRead, uint8_t Peripheral_ID)
 {
         I2C_CheckType RetVal;
         const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[Peripheral_ID];
@@ -137,12 +141,14 @@ void I2C_SetSlaveAddress(uint8_t SlaveAddress,uint8_t WriteOrRead, uint8_t Perip
 
 }
 
-I2C_CheckType I2C_SetSlaveAddressStatus(uint8_t Peripheral_ID)
+I2C_CheckType I2C_SendSlaveAddressStatus(uint8_t Peripheral_ID)
 {
     I2C_CheckType RetVal;
     const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[Peripheral_ID];
     
-    if( (I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_ADDR_POS)) == (1<<I2C_SR1_ADDR_POS) )
+    if( ( (I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_ADDR_POS)) == (1<<I2C_SR1_ADDR_POS)) ||
+			   ((I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_TXE_POS)) == (1<<I2C_SR1_TXE_POS))		||
+				 ((I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_RXNE_POS)) == (1<<I2C_SR1_RXNE_POS)))
     {
             RetVal = I2C_OK;
     }
@@ -170,12 +176,13 @@ void I2C_PlaceData(uint8_t Data, uint8_t Peripheral_ID)
 
 }
 
-void I2C_PlaceDataStatus(uint8_t Peripheral_ID)
+I2C_CheckType I2C_PlaceDataStatus(uint8_t Peripheral_ID)
 {
         I2C_CheckType RetVal;
         const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[Peripheral_ID];
         
-        if( (I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_TXE_POS)) == (1<<I2C_SR1_TXE_POS) ) 
+       if( ((I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_ADDR_POS)) == (1<<I2C_SR1_ADDR_POS)) ||
+			   ((I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_TXE_POS)) == (1<<I2C_SR1_TXE_POS)))
         {
             RetVal = I2C_OK;
         }
@@ -195,7 +202,7 @@ void I2C_PlaceDataStatus(uint8_t Peripheral_ID)
  ********************************************************************************************
  */
 
-void I2C_SetLocationAddress(uint8_t LocationAddress, uint8_t Peripheral_ID)
+void I2C_SendLocationAddress(uint8_t LocationAddress, uint8_t Peripheral_ID)
 {
         const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[Peripheral_ID];
         
@@ -203,12 +210,13 @@ void I2C_SetLocationAddress(uint8_t LocationAddress, uint8_t Peripheral_ID)
         I2C_DR(ConfigPtr->I2C_Peripheral_ID) = (LocationAddress);
 }
 
-I2C_CheckType I2C_SetLocationAddressStatus(uint8_t Peripheral_ID)
+I2C_CheckType I2C_SendLocationAddressStatus(uint8_t Peripheral_ID)
 {
         I2C_CheckType RetVal;
         const I2C_ConfigType* ConfigPtr = &I2C_ConfigParam[Peripheral_ID];
 
-        if( (I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_TXE_POS)) == (1<<I2C_SR1_TXE_POS) )
+       if( ((I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_ADDR_POS)) == (1<<I2C_SR1_ADDR_POS)) ||
+			   ((I2C_SR1(ConfigPtr->I2C_Peripheral_ID) & (1<<I2C_SR1_TXE_POS)) == (1<<I2C_SR1_TXE_POS)))
         {
                 RetVal = I2C_OK;
         }

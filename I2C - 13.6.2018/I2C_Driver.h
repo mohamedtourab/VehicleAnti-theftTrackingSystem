@@ -131,7 +131,8 @@ typedef volatile uint32_t* const I2C_RegisterAddressType;
 typedef enum 
 {
 	I2C_NOK=0,
-	I2C_OK=1
+	I2C_OK=1,
+	I2C_BUSY
 }I2C_CheckType;
 
 typedef enum
@@ -267,16 +268,23 @@ extern const I2C_ConfigType I2C_ConfigParam[I2C_PERIPHERAL_NUMBER];
 
 I2C_CheckType I2C_Init(void);
 void I2C_GenerateStart(uint8_t Peripheral_ID);
-void I2C_StartStatus(uint8_t Peripheral_ID);
-void I2C_SetSlaveAddress(uint8_t SlaveAddress,uint8_t WriteOrRead, uint8_t Peripheral_ID);
-I2C_CheckType I2C_SetSlaveAddressStatus(uint8_t Peripheral_ID);
+I2C_CheckType I2C_StartStatus(uint8_t Peripheral_ID);
+
+void I2C_SendSlaveAddress(uint8_t SlaveAddress,uint8_t WriteOrRead, uint8_t Peripheral_ID);
+I2C_CheckType I2C_SendSlaveAddressStatus(uint8_t Peripheral_ID);
+
 void I2C_PlaceData(uint8_t Data, uint8_t Peripheral_ID);
-void I2C_PlaceDataStatus(uint8_t Peripheral_ID);
-void I2C_SetLocationAddress(uint8_t LocationAddress, uint8_t Peripheral_ID);
-I2C_CheckType I2C_SetLocationAddressStatus(uint8_t Peripheral_ID);
+I2C_CheckType I2C_PlaceDataStatus(uint8_t Peripheral_ID);
+
+void I2C_SendLocationAddress(uint8_t LocationAddress, uint8_t Peripheral_ID);
+I2C_CheckType I2C_SendLocationAddressStatus(uint8_t Peripheral_ID);
+
 void I2C_GetData(uint8_t *Data, uint8_t Peripheral_ID);
 I2C_CheckType I2C_GetDataStatus(uint8_t Peripheral_ID);
+
 void I2C_GenerateStop(uint8_t Peripheral_ID);
+
+I2C_CheckType I2C_ErrorCheck(uint8_t Peripheral_ID);
 
 /*
  ******************************************************************************
@@ -288,7 +296,9 @@ void I2C_GenerateStop(uint8_t Peripheral_ID);
  ******************************************************************************
  */
 
-void(*I2C_CallBackPtrType)(void);
+extern uint8_t I2C_InitFlag;
+
+//void(*I2C_CallBackPtrType)(void);
 
 
 #endif /*end of I2C_DRIVER_H*/
