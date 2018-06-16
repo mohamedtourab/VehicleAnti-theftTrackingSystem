@@ -140,5 +140,9 @@ TIMER_ChkType TIMER_Init (void);
 */
 TIMER_ChkType PWM_Start (uint32_t ChannelId);
 
+/* A function that is called to fix the Dutycycle to zero
+   Inputs:
+   	  - ChannelId : index of the used Timer in Timer_ConfigParam
+*/
 TIMER_ChkType PWM_Clear (uint32_t ChannelId);
 #endif

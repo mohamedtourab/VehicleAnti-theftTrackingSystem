@@ -162,9 +162,6 @@ TIMER_ChkType TIMER_Init (void)
             Duty[LoopIndex] = CfgPtr->DutyCycle;
     		TIMx_CCRx(CfgPtr->TimerId,((CfgPtr->TimerChannel)-1)) = PULSE_LENGTH(PERIOD(CfgPtr->PWMFrequency),0);
 
-    		// set the polarity of the channels
-    		TIMx_CCER(CfgPtr->TimerId) = 0;
-
     		// reset the counter register
     		TIMx_CNT(CfgPtr->TimerId) = 0;
 
@@ -174,10 +171,9 @@ TIMER_ChkType TIMER_Init (void)
 
     		// enable the counter
     		SET_BIT(TIMx_CR1(CfgPtr->TimerId),CEN);
-
-            // Enable the output pin mode
-            SET_BIT(TIMx_CCER(CfgPtr->TimerId),(((CfgPtr->TimerChannel)-1)<<2));
-
+				
+				// Enable the output pin mode
+        	SET_BIT(TIMx_CCER(CfgPtr->TimerId),(((CfgPtr->TimerChannel)-1)<<2));
             // Change the state of the Channel to be TIMER_STATE_INIT
     		ChannelsState[LoopIndex] = TIMER_STATE_INIT;
 
@@ -210,10 +206,11 @@ TIMER_ChkType PWM_Start (uint32_t ChannelId)
     if (ChannelId < TIMER_CHANNEL_NUM)
     {
         CfgPtr = &TIMER_ConfigParam[ChannelId];
-        // check the Channel State
+        // check teh Channel State
         // if state is Init which means that it is the first time to start the PWM
         if (ChannelsState[ChannelId] == TIMER_STATE_INIT)
         {
+        	
             // change the state to be INPROGRESS to indicate that this is not the first time to call the function
         	ChannelsState[ChannelId] = TIMER_STATE_INPROGRESS;
         }
@@ -251,6 +248,11 @@ TIMER_ChkType PWM_Start (uint32_t ChannelId)
     return RetVar;
 }
 
+
+/* A function that is called to fix the Dutycycle to zero
+   Inputs:
+   	  - ChannelId : index of the used Timer in Timer_ConfigParam
+*/
 TIMER_ChkType PWM_Clear (uint32_t ChannelId)
 {
     TIMER_ChkType RetVar;
