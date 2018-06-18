@@ -29,7 +29,6 @@ const GSM_ConfigType GSM_ConfigParam =
         4,PIN_MASK_12,
         /*pin mask of the Ring in the selected GPIO group*/
 
-        Buffer,10,
         "internet.vodafone.net",21,
         "internet",8,
 	"internet",8,

@@ -22,6 +22,12 @@ extern const uint8_t ErrorHandlerConfigParam [ERROR_HANDLER_NUMBER_OF_ERROR_SOUR
 **********						Functions prototypes						********
 ***********************************************************************************/
 
+/*
+ * This function used to initialize the error flags
+ * Inputs:NONE
+ * Output:NONE
+*/
+
 void ErrorHandler_Init(void);
 
 /*
@@ -49,5 +55,13 @@ void ErrorHandler_SetError(uint8_t ErrorId);
 
 void ErrorHandler_ClearError(uint8_t ErrorId);
 
+/*
+ * This function is a FSM to manage the on going operations of the ErrorHandler module
+ *Inputs:NONE
+ * Output:NONE
+*/
+
 void ErrorHandler_ManagOnGoingOperation(void);
+
+
 #endif
