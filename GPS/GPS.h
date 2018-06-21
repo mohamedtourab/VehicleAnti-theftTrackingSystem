@@ -42,19 +42,22 @@
 /*Call back function to be executed after parsing*/
 typedef void (*GPS_CallBackFn)(void);
 
+/*Callback function in case of error*/
+typedef void (*GPS_ErrorCallBackFn)(uint8_t);
+
 // enum for the return value of functions either Ok or BUSY
 typedef enum {GPS_OK = 0, GPS_BUSY = 1}GPS_CheckType;
 
 /*Structure to get the Configuration Parameters of GPS_Module*/
 typedef struct 
 {
-	uint8_t UART_ChannelId;		// The index of the UART channel in the Configuration Parameter array defined in UART_Cfg.c
-	uint8_t Force_ChannelId;	// The index of the Force pin channel in the configuration parameter defined in GPIO_Cfg.c
-	uint16_t ForcePinMask;		// The pin mask used for Force pin
-	uint8_t RST_ChannelId;		// The index of the Reset pin channel in the configuration parameter defined in GPIO_Cfg.c
-	uint16_t RstPinMask;		// The pin mask used for Reset pin
-	GPS_CallBackFn FoundCallBack;	// CallBack function that will be executed in case of finding the data in GPS readeings
-	GPS_CallBackFn ErrorCallBack;	// CallBack function that will be executed in case the data is not found
+	uint8_t UART_ChannelId;				// The index of the UART channel in the Configuration Parameter array defined in UART_Cfg.c
+	uint8_t Force_ChannelId;			// The index of the Force pin channel in the configuration parameter defined in GPIO_Cfg.c
+	uint16_t ForcePinMask;				// The pin mask used for Force pin
+	uint8_t RST_ChannelId;				// The index of the Reset pin channel in the configuration parameter defined in GPIO_Cfg.c
+	uint16_t RstPinMask;				// The pin mask used for Reset pin
+	GPS_CallBackFn FoundCallBack;		// CallBack function that will be executed in case of finding the data in GPS readeings
+	GPS_ErrorCallBackFn ErrorCallBack;	// CallBack function that will be executed in case the data is not found
 }GPS_Config;
 
 /*Structure to store the Longitude and Latitude*/

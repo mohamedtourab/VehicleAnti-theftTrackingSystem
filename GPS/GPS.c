@@ -30,6 +30,7 @@
 #include "GPS.h"
 #include "UART.h"
 #include "Parse.h"
+#include "GPS_Cfg.h"
 #include "GPIO.h"
 
 
@@ -446,7 +447,7 @@ void GPS_ManagOnGoingOperation(void)
 		case GPS_ERROR:
 		{
 			// execute the error call back function
-			GPS_Ptr->ErrorCallBack();
+			GPS_Ptr->ErrorCallBack(ERROR_ID);
 			// change the state to be IDLE
 			State = GPS_IDLE;
 		}
