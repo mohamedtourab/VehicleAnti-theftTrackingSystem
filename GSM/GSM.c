@@ -222,6 +222,8 @@ static uint16_t DelayCounter;
 static uint32_t MaxResponseTimeCounter;
 static uint8_t  Ring120msCounter;
 
+static uint8_t ReadMsgBuffer[READ_MSG_LENGTH];
+
 /***********************************************************************************
 **********                      GSM functions' bodies                      ********
 ***********************************************************************************/
@@ -621,13 +623,13 @@ void GSM_ManageOngoingOperation(void)
                 FSM_State = 1;
 
                 //exectract the msg from the response
-				for(Index = 0; Index < (ConfigPtr->ReadMsgLength); Index++)
+				for(Index = 0; Index < READ_MSG_LENGTH; Index++)
 				{
-					ConfigPtr->ReadMsgBuffer[Index] = DriverReceivedResponse[SMSReceivedResponseLength - (ConfigPtr->ReadMsgLength) + Index];
+					ReadMsgBuffer[Index] = DriverReceivedResponse[SMSReceivedResponseLength - (ConfigPtr->ReadMsgLength) + Index];
 				}
 
                 //call he callback function
-                ConfigPtr->RecieveMsgCallBackFn();   
+                ConfigPtr->RecieveMsgCallBackFn(ReadMsgBuffer);   
 			
 			}
 			//if the function wasn't executed successfully

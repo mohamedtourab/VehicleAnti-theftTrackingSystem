@@ -30,6 +30,8 @@ typedef enum {GSM_OK = 0, GSM_NOK, GSM_BSY} GSM_CheckType;
 //--------------------------------------------------------------------------------------
 //a pointer to a call back function data type
 typedef void (*GSM_CallBackFnType)(void);
+//a pointer to a call back function data type for SMS Receive
+typedef void (*GSM_RecCallBackFnType)(uint8_t*);
 
 //a pointer to the error call back function data type
 typedef void (*GSM_ErrCallBackFnType)(uint8_t);
@@ -55,12 +57,7 @@ typedef struct
 	uint8_t RingGroupId;
 	/*pin mask of the Ring in the selected GPIO group*/
 	uint16_t RingPinMask;
-
-	/*a pointer to a buffer to hole the received message for the client to read*/
-	uint8_t* ReadMsgBuffer;
-	/*a variable to indicate the expected length of the received message*/
-	uint8_t ReadMsgLength;
-
+	
 	/*a pointer to a String that holds the service provider APN*/
 	uint8_t* ServiceProviderAPN;
 	/*a variable to indicate the expected length of the service provider APN*/
@@ -80,7 +77,7 @@ typedef struct
 	GSM_CallBackFnType SendMsgCallBackFn;
 
 	/*a pointer to the received message callback function*/
-	GSM_CallBackFnType RecieveMsgCallBackFn;
+	GSM_RecCallBackFnType RecieveMsgCallBackFn;
 
 	/*a pointer to the server send message callback function*/
 	GSM_CallBackFnType SendServerMsgCallBackFn;

@@ -37,6 +37,13 @@ void ErrorHandler_Callbackfn (uint8_t ErrorId)
 /***********************************************************************************
 **********					Error handler functions' bodies					********
 ***********************************************************************************/
+
+/*
+ * This function used to initialize the error flags
+ * Inputs:NONE
+ * Output:NONE
+*/
+
 void ErrorHandler_Init(void)
 {
 	uint8_t LoopIndex = 0;
@@ -68,6 +75,12 @@ void ErrorHandler_ClearError(uint8_t ErrorId)
 {
 	ErrorFlags[ErrorId] = 0;
 }
+
+/*
+ * This function is a FSM to manage the on going operations of the ErrorHandler module
+ *Inputs:NONE
+ * Output:NONE
+*/
 
 void ErrorHandler_ManagOnGoingOperation(void)
 {

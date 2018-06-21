@@ -424,3 +424,59 @@ static unsigned int Parser (const char InputName[],char OutputName[])
     OutputName[i]='\r';
     return (i+1);
 }
+
+/*
+ ************************************************************************************** 
+ *                                                                                    *  
+ * Function Used to Check the current status of the module connected or not connected *     
+ * 1,0,0 indicates the device is connected                                            *
+ * 0,0,0 indicates that it is not connected                                           *                                     *  
+ *                                                                                    *  
+ **************************************************************************************
+ */
+
+BT_ConnectionStatus BT_GetConnectionStatus (void)
+{
+    BT_ConnectionStatus RetVal;
+    static unsigned char ReceivedArray[8] = {'\0','\0','\0','\0','\0','\0','\0','\0'};
+
+    UART_StartSilentTransmission("$$$",3,ConfigPtr->BT_ChannelID);
+    UART_StartSilentTransmission("GK",2,ConfigPtr->BT_ChannelID);
+    UART_StartSilentReception(ReceivedArray,6,ConfigPtr->BT_ChannelID);
+
+    switch(ReceivedArray[0])
+    {
+        case '1': //connected
+        {
+            RetVal = CONNECTED;
+            return RetVal;
+        }
+        break;
+
+        case '0': //not connected
+        {
+            RetVal = NOT_CONNECTED;
+            return RetVal;
+        }
+        break;
+
+        default:
+        break;
+    }
+
+}
+
+/*
+ ****************************************************************************** 
+ *                                                                            *  
+ *     Function Used to disconnect the device the current connection          *      
+ *                                                                            *  
+ *                                                                            *  
+ ******************************************************************************
+ */
+
+void BT_KillConnection (void)
+{
+    UART_StartSilentTransmission("$$$",3,ConfigPtr->BT_ChannelID);
+    UART_StartSilentTransmission("K",1,ConfigPtr->BT_ChannelID);
+}

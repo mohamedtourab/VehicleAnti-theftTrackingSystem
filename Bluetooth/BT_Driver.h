@@ -43,6 +43,12 @@ typedef enum
 
 typedef enum
 {
+    CONNECTED = 0,
+    NOT_CONNECTED
+}BT_ConnectionStatus;
+
+typedef enum
+{
 	BT_DATA_IDLE = 0,
 	BT_DATA_BUSY
 }BT_DataStates;
@@ -70,6 +76,8 @@ BT_CheckType BT_GetData(char* DataReceived,uint8_t NoOfBytes);
 BT_CheckType BT_SendData(char* DataSent, uint8_t NoOfBytes);
 BT_Response MemoryCompare(unsigned char* AT_Command , uint8_t Length);
 BT_CheckType BT_Configure(void);
+BT_ConnectionStatus BT_GetConnectionStatus (void);
+void BT_KillConnection (void);
 static unsigned int Parser (const char InputName[],char OutputName[]);
 void BT_Init(void);
 #endif

@@ -16,7 +16,7 @@
 **********							Macros									********
 ***********************************************************************************/
 
-#define ELM327_EXPIRE_TIME	10000U
+#define ELM327_EXPIRE_TIME	100000U
 
 #define ELM327_T_EXP	(ELM327_EXPIRE_TIME/ELM327_CYCLIC_TIME)
 
@@ -34,16 +34,16 @@
 
 /*AT Commands Response lengths Macros*/
 #define SYSTEM_RESET_RRES_LENGHTH			17U
-#define VEHICLE_SPEED_RRES_LENGTH			13U
-#define VEHICLE_RPM_RRES_LENGTH				13U
-#define BATTERY_STATE_RRES_LENGTH			10U
+#define VEHICLE_SPEED_RRES_LENGTH			9U
+#define VEHICLE_RPM_RRES_LENGTH				9U
+#define BATTERY_STATE_RRES_LENGTH			6U
 
 
 /*AT Commands expected Response lengths Macros*/
 #define SYSTEM_RESET_ERES_LENGHTH			17U
-#define VEHICLE_SPEED_ERES_LENGTH			5U
-#define VEHICLE_RPM_ERES_LENGTH				5U
-#define BATTERY_STATE_ERES_LENGTH			5U
+#define VEHICLE_SPEED_ERES_LENGTH			1U
+#define VEHICLE_RPM_ERES_LENGTH				1U
+#define BATTERY_STATE_ERES_LENGTH			1U
 
 
 
@@ -393,22 +393,22 @@ void ELM327_ManageOngoingOperation(void)
 				else 															//this means the car is started (speed may = 0 [if not yet moved] , or speed > zero [started to move])
 				{
 					/*this algorithm used to convert the ASCII answer of the module to decimel numbers*/
-					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] <= ASCII_OF_NINE))
+					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4] <= ASCII_OF_NINE))
 					{
-						VehicleData = ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_ZERO;
+						VehicleData = ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4]-ASCII_OF_ZERO;
 					}
 					else
 					{
-						VehicleData = (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_A)+10;
+						VehicleData = (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4]-ASCII_OF_A)+10;
 					}
 
-					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] <= ASCII_OF_NINE))
+					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5] <= ASCII_OF_NINE))
 					{
-						VehicleData += (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_ZERO)*16;
+						VehicleData += (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5]-ASCII_OF_ZERO)*16;
 					}
 					else
 					{
-						VehicleData += ((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_A)+10)*16;
+						VehicleData += ((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5]-ASCII_OF_A)+10)*16;
 					}
 				}
 
@@ -442,7 +442,7 @@ void ELM327_ManageOngoingOperation(void)
 			if(ELM327_Check == ELM327_OK)
 			{
 				
-				if(ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] == '\r')			//check if the vehicle started
+				if(ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-1] == '\r')			//check if the vehicle started
 				{
 					/*means vehicle not started yet*/
 					VehicleData = -1;			//retun -1 as indication of not started
@@ -450,22 +450,22 @@ void ELM327_ManageOngoingOperation(void)
 				else
 				{
 					/*means that the vehicle already started */
-					if((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1] <= ASCII_OF_NINE))
+					if((ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-1] <= ASCII_OF_NINE))
 					{
-						VehicleData = ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1]-ASCII_OF_ZERO;
+						VehicleData = ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-1]-ASCII_OF_ZERO;
 					}
 					else
 					{
-						VehicleData = (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-1]-ASCII_OF_A)+10;
+						VehicleData = (ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-1]-ASCII_OF_A)+10;
 					}
 
-					if((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2] <= ASCII_OF_NINE))
+					if((ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-2] <= ASCII_OF_NINE))
 					{
-						VehicleData += (ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2]-ASCII_OF_ZERO)*16;
+						VehicleData += (ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-2]-ASCII_OF_ZERO)*16;
 					}
 					else
 					{
-						VehicleData += ((ReceivedResponse[VEHICLE_RPM_ERES_LENGTH-2]-ASCII_OF_A)+10)*16;
+						VehicleData += ((ReceivedResponse[VEHICLE_RPM_RRES_LENGTH-2]-ASCII_OF_A)+10)*16;
 					}
 
 					VehicleData <<= 6;	//equation from data sheet to estimate the RPM from output parameters
@@ -897,21 +897,21 @@ static ELM327_CheckType ATCMD_System_Reset(void)
 	uint8_t CommandToSend[SYSTEM_RESET_CMD_LENGTH] = {'A','T','Z','\r'};//the command to be sent
 
 	//assign the expected response
-	ExpectedResponse[0]  = 'A';
-	ExpectedResponse[1]  = 'T';
-	ExpectedResponse[2]  = 'Z';
-	ExpectedResponse[3]  = '\r';
-	ExpectedResponse[4]  = 'E';
-	ExpectedResponse[5]  = 'L';
-	ExpectedResponse[6]  = 'M';
-	ExpectedResponse[7]  = '3';
-	ExpectedResponse[8]  = '2';
-	ExpectedResponse[9]  = '7';
-	ExpectedResponse[10] = ' ';
-	ExpectedResponse[11] = 'v';
-	ExpectedResponse[12] = '1';
-	ExpectedResponse[13] = '.';
-	ExpectedResponse[14] = '5';
+	ExpectedResponse[0]  = '\r';
+	ExpectedResponse[1]  = '\r';
+	ExpectedResponse[2]  = '\r';
+	ExpectedResponse[3]  = 'E';
+	ExpectedResponse[4]  = 'L';
+	ExpectedResponse[5]  = 'M';
+	ExpectedResponse[6]  = '3';
+	ExpectedResponse[7]  = '2';
+	ExpectedResponse[8]  = '7';
+	ExpectedResponse[9] = ' ';
+	ExpectedResponse[10] = 'v';
+	ExpectedResponse[11] = '1';
+	ExpectedResponse[12] = '.';
+	ExpectedResponse[13] = '5';
+	ExpectedResponse[14] = '\r';
 	ExpectedResponse[15] = '\r';
 	ExpectedResponse[16] = '>';
 
@@ -927,7 +927,7 @@ static ELM327_CheckType ATCMD_System_Reset(void)
 	if(UART_Check == UART_NOK)
 	{
 		//transmission wasn't successful
-		RetVar = GSM_DRIVER_NOK;
+		RetVar = ELM327_NOK;
 	}
 	else{/*RetVar is initialized to OK so no action is needed here*/}
 
@@ -954,15 +954,11 @@ static ELM327_CheckType ATCMD_Vehicle_Speed(void)
 	uint8_t CommandToSend[VEHICLE_SPEED_CMD_LENGTH] = {'0','1','0','D','\r'};//the command to be sent
 
 	//assign the expected response
-	ExpectedResponse[0]  = '0';
-	ExpectedResponse[1]  = '1';
-	ExpectedResponse[2]  = '0';
-	ExpectedResponse[3]  = 'D';
-	ExpectedResponse[4]  = '\r';
+	ExpectedResponse[0]  = '\r';
 
 
 	ReceivedResponseLength = VEHICLE_SPEED_RRES_LENGTH;//assign the length of the Received Response
-	ExpectedResponseLength = VEHICLE_SPEED_RRES_LENGTH;//assign the length of the expectedResponse
+	ExpectedResponseLength = VEHICLE_SPEED_ERES_LENGTH;//assign the length of the expectedResponse
 
 	//start the transmission of the command
 	UART_Check = UART_StartSilentTransmission(CommandToSend, VEHICLE_SPEED_CMD_LENGTH, ConfigPtr->UartChannelId);
@@ -973,7 +969,7 @@ static ELM327_CheckType ATCMD_Vehicle_Speed(void)
 	if(UART_Check == UART_NOK)
 	{
 		//transmission wasn't successful
-		RetVar = GSM_DRIVER_NOK;
+		RetVar = ELM327_NOK;
 	}
 	else{/*RetVar is initialized to OK so no action is needed here*/}
 
@@ -999,12 +995,7 @@ static ELM327_CheckType ATCMD_Vehicle_RPM(void)
 	uint8_t CommandToSend[VEHICLE_RPM_CMD_LENGTH] = {'0','1','0','C','\r'};//the command to be sent
 
 	//assign the expected response
-	ExpectedResponse[0]  = '0';
-	ExpectedResponse[1]  = '1';
-	ExpectedResponse[2]  = '0';
-	ExpectedResponse[3]  = 'C';
-	ExpectedResponse[4]  = '\r';
-
+	ExpectedResponse[0]  = '\r';
 
 	ReceivedResponseLength = VEHICLE_RPM_RRES_LENGTH;//assign the length of the Received Response
 	ExpectedResponseLength = VEHICLE_RPM_ERES_LENGTH;//assign the length of the expectedResponse
@@ -1018,7 +1009,7 @@ static ELM327_CheckType ATCMD_Vehicle_RPM(void)
 	if(UART_Check == UART_NOK)
 	{
 		//transmission wasn't successful
-		RetVar = GSM_DRIVER_NOK;
+		RetVar = ELM327_NOK;
 	}
 	else{/*RetVar is initialized to OK so no action is needed here*/}
 
@@ -1044,11 +1035,7 @@ static ELM327_CheckType ATCMD_Battery_State(void)
 	uint8_t CommandToSend[BATTERY_STATE_CMD_LENGTH] = {'A','T','R','V','\r'};//the command to be sent
 
 	//assign the expected response
-	ExpectedResponse[0]  = 'A';
-	ExpectedResponse[1]  = 'T';
-	ExpectedResponse[2]  = 'R';
-	ExpectedResponse[3]  = 'V';
-	ExpectedResponse[4]  = '\r';
+	ExpectedResponse[0]  = '\r';
 
 
 	ReceivedResponseLength = BATTERY_STATE_RRES_LENGTH;//assign the length of the Received Response
@@ -1063,7 +1050,7 @@ static ELM327_CheckType ATCMD_Battery_State(void)
 	if(UART_Check == UART_NOK)
 	{
 		//transmission wasn't successful
-		RetVar = GSM_DRIVER_NOK;
+		RetVar = ELM327_NOK;
 	}
 	else{/*RetVar is initialized to OK so no action is needed here*/}
 
