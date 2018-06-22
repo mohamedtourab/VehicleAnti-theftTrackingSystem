@@ -442,7 +442,18 @@ BT_ConnectionStatus BT_GetConnectionStatus (void)
 
     UART_StartSilentTransmission("$$$",3,ConfigPtr->BT_ChannelID);
     UART_StartSilentTransmission("GK",2,ConfigPtr->BT_ChannelID);
-    UART_StartSilentReception(ReceivedArray,6,ConfigPtr->BT_ChannelID);
+
+    if(ReceptionDone)
+    {
+    	UART_StartSilentReception(ReceivedArray,6,ConfigPtr->BT_ChannelID);
+    	ReceptionDone=0;
+    }
+    else
+    {
+    #if(BT_USE_INT_TO_HANDLE==0)
+        UART_ManageOngoingOperation(ConfigPtr->BT_ChannelID);
+    #endif
+    }
 
     switch(ReceivedArray[0])
     {
@@ -478,5 +489,5 @@ BT_ConnectionStatus BT_GetConnectionStatus (void)
 void BT_KillConnection (void)
 {
     UART_StartSilentTransmission("$$$",3,ConfigPtr->BT_ChannelID);
-    UART_StartSilentTransmission("K",1,ConfigPtr->BT_ChannelID);
+    UART_StartSilentTransmission('K',1,ConfigPtr->BT_ChannelID);
 }
