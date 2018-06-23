@@ -28,14 +28,26 @@
 /*data type for the return values in the ELM327*/
 typedef enum 
 {
-	ELM327_OK = 0, ELM327_NOK, ELM327_BUSY} ELM327_CheckType;
+	ELM327_OK = 0, ELM327_NOK, ELM327_BUSY
+} ELM327_CheckType;
+
+/**************** Vehicle states **********************/
+typedef enum
+{
+	OBD_PARKED_STATE = 0,
+	OBD_STARTED_STATE,
+	OBD_MOVING_STATE
+} OBD_VehicleStatus;
 
 //------------------------------------------------------------------------------------
 /***********************************************************************************
 **********                   Configration structure                             ****
 ***********************************************************************************/
 //a pointer to a call back function data type
-typedef void (*ELM327_CallBackFnType)(uint16_t);
+typedef void (*ELM327_CallBackFnType)(int16_t);
+
+//a pointer to a call back function data type for vehicle status
+typedef void (*ELM327_VehicleStatusCallBackFnType)(OBD_VehicleStatus);
 
 //a pointer to the error call back function data type
 typedef void (*ELM327_ErrCallBackFnType)(uint8_t);
@@ -55,6 +67,8 @@ typedef struct
 
 	/*pointer to get vehicle battery state call back function*/
 	ELM327_CallBackFnType GetVehicleBatteryStateCallBackFn;
+
+	ELM327_VehicleStatusCallBackFnType GetVehicleStatusCallBackFn;
 
 	/*a pointer to the error callback function*/
 	ELM327_CallBackFnType ErrorCallBackFn;

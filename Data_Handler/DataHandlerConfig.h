@@ -12,8 +12,10 @@
 #ifndef DATA_HANDLER_CONFIG_H
 #define DATA_HANDLER_CONFIG_H
 
-//the the lengrh of the Command
-#define DATA_HANDLER_CMD_LENGTH	3U
+#define DH_CYCLIC_TIME					50U
+
+#define DH_ERROR_ID						4U
+
 
 
 #endif
