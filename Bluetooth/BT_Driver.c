@@ -489,5 +489,5 @@ BT_ConnectionStatus BT_GetConnectionStatus (void)
 void BT_KillConnection (void)
 {
     UART_StartSilentTransmission("$$$",3,ConfigPtr->BT_ChannelID);
-    UART_StartSilentTransmission('K',1,ConfigPtr->BT_ChannelID);
+    UART_StartSilentTransmission("K",1,ConfigPtr->BT_ChannelID);
 }
