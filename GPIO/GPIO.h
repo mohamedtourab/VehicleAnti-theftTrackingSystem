@@ -257,7 +257,3 @@ GPIO_CheckType GPIO_SetAlternFuntion(uint8_t GroupId, uint32_t AlternFuncId);
 /*********************************************************************************/
 
 #endif
-
-
-
-
