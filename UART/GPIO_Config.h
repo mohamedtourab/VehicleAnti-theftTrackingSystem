@@ -15,3 +15,4 @@
 #define GPIO_NUMBER_OF_GROUPS 2U
 
 #endif
+

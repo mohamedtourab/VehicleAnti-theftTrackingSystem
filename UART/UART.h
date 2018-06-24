@@ -199,3 +199,5 @@ UART_ChkType UART_GetNumberOfRxBytes(uint8_t ChannelId,uint32_t* NumPtr);
 UART_ChkType UART_ManageOngoingOperation(uint8_t ChannelId);
 #endif
 #endif
+
+
