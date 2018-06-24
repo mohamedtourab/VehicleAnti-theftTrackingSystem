@@ -625,7 +625,7 @@ void GSM_ManageOngoingOperation(void)
                 //exectract the msg from the response
 				for(Index = 0; Index < READ_MSG_LENGTH; Index++)
 				{
-					ReadMsgBuffer[Index] = DriverReceivedResponse[SMSReceivedResponseLength - (ConfigPtr->ReadMsgLength) + Index];
+					ReadMsgBuffer[Index] = DriverReceivedResponse[SMSReceivedResponseLength - READ_MSG_LENGTH + Index];
 				}
 
                 //call he callback function
@@ -1485,7 +1485,7 @@ static GSM_CheckType Read_Msg(void)
     		//if the delay is done
     		else
     		{
-    			GSM_Driver_ATCMD_ReadSMS(ConfigPtr->ReadMsgLength);
+    			GSM_Driver_ATCMD_ReadSMS(READ_MSG_LENGTH);
 
 				TempFSM_State = FSM_State;
 				FSM_State = RECEIVE_BUSY_STATE;

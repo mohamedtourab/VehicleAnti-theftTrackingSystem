@@ -70,6 +70,10 @@
 
 
 
+
+
+
+
 /***********************************************************************************
 **********				GSM Helper functions prototypes						********
 ***********************************************************************************/
@@ -322,7 +326,8 @@ void ELM327_ManageOngoingOperation(void)
 
 	const ELM327_ConfigType* ConfigPtr = &ELM327_ConfigParam;	//declare a pointer to structure of the ELM327_ConfigType
 	
-	uint16_t VehicleData = 0; //avariable to hold any data from the vehicle after processing it
+	int16_t VehicleData = 0; //avariable to hold any data from the vehicle after processing it
+	OBD_VehicleStatus VehicleStatus = 0;	//variable to hold the state of the car
 
 	switch(ManageState)
 	{
@@ -389,26 +394,37 @@ void ELM327_ManageOngoingOperation(void)
 				{
 					/*this means that the vehicle not yet started*/
 					VehicleData = -1;									//return -1 for used as indication that the car not started
+					VehicleStatus = OBD_PARKED_STATE;
 				}
 				else 															//this means the car is started (speed may = 0 [if not yet moved] , or speed > zero [started to move])
 				{
 					/*this algorithm used to convert the ASCII answer of the module to decimel numbers*/
-					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4] <= ASCII_OF_NINE))
+					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1] <= ASCII_OF_NINE))
 					{
-						VehicleData = ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4]-ASCII_OF_ZERO;
+						VehicleData = ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_ZERO;
 					}
 					else
 					{
-						VehicleData = (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-4]-ASCII_OF_A)+10;
+						VehicleData = (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-1]-ASCII_OF_A)+10;
 					}
 
-					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5] <= ASCII_OF_NINE))
+					if((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] >= ASCII_OF_ZERO) && (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2] <= ASCII_OF_NINE))
 					{
-						VehicleData += (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5]-ASCII_OF_ZERO)*16;
+						VehicleData += (ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_ZERO)*16;
 					}
 					else
 					{
-						VehicleData += ((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-5]-ASCII_OF_A)+10)*16;
+						VehicleData += ((ReceivedResponse[VEHICLE_SPEED_RRES_LENGTH-2]-ASCII_OF_A)+10)*16;
+					}
+
+					if (VehicleData == 0)
+					{
+						VehicleStatus = OBD_STARTED_STATE;
+
+					}
+					else
+					{
+						VehicleStatus = OBD_MOVING_STATE;
 					}
 				}
 
@@ -418,6 +434,7 @@ void ELM327_ManageOngoingOperation(void)
 
 				HelperState = SEND_CMD;
 
+				ConfigPtr->GetVehicleStatusCallBackFn(VehicleStatus);
 				ConfigPtr->GetVehicleSpeedCallBackFn(VehicleData);
 			}
 			else if(ELM327_Check == ELM327_NOK)
