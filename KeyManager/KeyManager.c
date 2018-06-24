@@ -9,16 +9,16 @@
 *				user should determine the used UART and the pin where the button is connected and aslo 
 *			    the length of the key.
 *				The key enetered through UART will be stored in a predetermined location in the EEPROM 
-*				if this location can not be accessed the application should change this location till it
-*			 	can be accessed.
+*				to be read by the other layes to check the authentications
+*				to reset the default key user should enter zeros.
 *		USAGE:
 *				1- Configure the Parameter in the Config file which are the used UART and button and key length.
-*				2- SetKeyLocation function is used to set the location in which we try to store the new key.
-*				3- KeyChange_ManageOnGoingOperation is the periodic function that is called to handle checking
+*				2- KeyInit function is used to Initialize the used states and global variables.
+*				3- KeyChangeManage is the periodic function that is called to handle checking
 *				   the state of the button and start reception from UART in case of presseing the button and 
 *				   then try to store the key in the predetermined location. in case of valid location we store
-*				   the key and execute the callback function predetermined in the configuration file. in case of
-*				   invalid location we execute the invalid callback function predetermined in the configuration file
+*				   the key and execute the callback function predetermined in the configuration file. 
+*				   also we store the status of the used key either default or new key in EEPROM.
 *******************************************************************************************************************/
 
 #include "KeyManager.h"
