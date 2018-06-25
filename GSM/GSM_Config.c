@@ -8,33 +8,32 @@
 *Microcontroller: STM32F407VG
 ***************************************************************************************/ 
 #include "GSM.h"
+#include "DataHandler.h"
 
-void Test(void);
-void Rec(void);
+
 void Error_func(uint8_t id);
-//declared in the application
-extern uint8_t Buffer[3];
+
 
 const GSM_ConfigType GSM_ConfigParam =
 {
 
         /*GSM power key Group ID & it's pin mask*/
-        2,PIN_MASK_3,
+        3,PIN_MASK_3,
 
         /*GSM ready to send Group ID*/
-        3,PIN_MASK_14,
+        4,PIN_MASK_14,
         /*pin mask of the RTS in the selected GPIO group*/
         
         /*GSM Ring Group ID*/
-        4,PIN_MASK_12,
+        5,PIN_MASK_12,
         /*pin mask of the Ring in the selected GPIO group*/
 
         "internet.vodafone.net",21,
         "internet",8,
-	"internet",8,
+				"internet",8,
 
 
-        &Test,&Rec,&Test,&Error_func
+        SendWarningCallBackFn,RecievedSMSCallBackFn,SendServerCallBackFn,&Error_func
 
 
 

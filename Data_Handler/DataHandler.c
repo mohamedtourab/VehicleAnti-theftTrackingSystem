@@ -15,8 +15,8 @@
 /**************************************************************************************/
 /**********************			Define MACROS		***********************************/
 /**************************************************************************************/
-#define EXPIRE_TIME					15000U
-#define LOC_FRAME_LENGTH			25U
+#define EXPIRE_TIME					300000U
+#define LOC_FRAME_LENGTH			26U
 
 #define T_EXP						(EXPIRE_TIME/DH_CYCLIC_TIME)
 
@@ -493,6 +493,7 @@ static void ParseLocation(void)
 	LocationFrame[23] = '$';
 
 	LocationFrame[24] = GPS_LocationBufferPtr->LatitudeDir;
+	LocationFrame[25] = 26;
 }
 
 /*

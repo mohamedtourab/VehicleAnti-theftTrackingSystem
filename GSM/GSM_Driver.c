@@ -1326,11 +1326,11 @@ GSM_DriverCheckType GSM_Driver_ATCMD_TCP_Deactivate(void)
 	//assign the expected response 
 	ExpectedResponse[0] = '\r';
 	ExpectedResponse[1] = '\n';
-	ExpectedResponse[2] = 'C';
-	ExpectedResponse[3]	= 'L';
-	ExpectedResponse[4]	= 'O';
-	ExpectedResponse[5]	= 'S';
-	ExpectedResponse[6]	= 'E';
+	ExpectedResponse[2] = 'D';
+	ExpectedResponse[3]	= 'E';
+	ExpectedResponse[4]	= 'A';
+	ExpectedResponse[5]	= 'C';
+	ExpectedResponse[6]	= 'T';
 	ExpectedResponse[7]	= ' ';
 	ExpectedResponse[8]	= 'O';
 	ExpectedResponse[9]	= 'K';

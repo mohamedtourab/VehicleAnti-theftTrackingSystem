@@ -8,26 +8,27 @@
 *Microcontroller: STM32F407VG
 ***************************************************************************************/ 
 #include "DataHandler.h"
-
+uint8_t W_MSG[8] = {'W','a','r','n','i','n','g',26};
 void Test(void);
 void Rec(void);
-void Error_func(uint8_t id);
+void Error_func1(uint8_t id);
 
+void cl (void);
 const DataHandlerConfigType DataHandlerConfigParam =
 {
 	/*Warning message to be sent*/
-	"Warning",
+	W_MSG,
 
 	/*length of warning message*/
-	7,
+	8,
 
 	/*phone number*/
 	"01008029273",
 
-	"156.218.203.254",
+	"156.219.231.203",
 	15,
 
-	"999",
+	"350",
 
 	3,
 
@@ -38,13 +39,13 @@ const DataHandlerConfigType DataHandlerConfigParam =
 
 
 	/*a pointer to a call back function*/
-	&Test,
-	&Test,
+	Test,
+	Test,
 
-	&Test,
+	cl,
 
 
 	/*a pointer to the error callback function*/
-	&Error_func,
+	Error_func1,
 
 };

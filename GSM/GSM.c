@@ -14,10 +14,10 @@
 
 #define TIME_BETWEEN_COMMANDS		50U
 #define TIME_TILL_READY				15000U
-#define EXPIRE_TIME					10000U
+#define EXPIRE_TIME					300000U
 
 /*****Development mode Macro*****/
-//#define DEVELOPMENT_MODE_ENABLE
+#define DEVELOPMENT_MODE_ENABLE
 /********************************/
 
 //the time delays used in this file
@@ -711,7 +711,7 @@ void GSM_ManageOngoingOperation(void)
 void GSM_DriverCallBackFn(GSM_DriverCheckType GSM_DriverCheck, uint8_t* ReceivedResponse, uint8_t ReceivedResponseLength)
 {
 	#ifdef DEVELOPMENT_MODE_ENABLE
-	UART_StartSilentTransmission (ReceivedResponse,ReceivedResponseLength,1);
+	UART_StartSilentTransmission (ReceivedResponse,ReceivedResponseLength,0);
 	#endif
 	//if the AT command was executed successfully
 	if(GSM_DriverCheck == GSM_DRIVER_OK)

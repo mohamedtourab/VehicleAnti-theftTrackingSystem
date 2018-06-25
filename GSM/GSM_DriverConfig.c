@@ -14,7 +14,7 @@
 const GSM_DriverConfigType GSM_DriverConfigParam =
 {
 	/*UART Channel number*/
-	0,
+	1,
 	/*a pointer to the client's callback function*/
 	&GSM_DriverCallBackFn
 };
