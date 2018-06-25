@@ -69,7 +69,7 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
         OSPEED_LOW, 
         PUPD_NOPUPD  
     },
-    {	
+    {	//GREEN LED
     	//set portD as an output 
         PORT_GPIOD, // the choosen port
         PIN_MASK_12,// sellect the pin number of the port (12)
@@ -79,6 +79,7 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
         DEFAULT //set the pullup pulldown to no pulldown/pulldown
     },
     {	
+        //ORANGE LED
     	//set portD as an output 
         PORT_GPIOD, // the choosen port
         PIN_MASK_13,// sellect the pin number of the port (12)
@@ -88,6 +89,7 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
         DEFAULT //set the pullup pulldown to no pulldown/pulldown
     },
     {	
+        //RED LED
     	//set portD as an output 
         PORT_GPIOD, // the choosen port
         PIN_MASK_14,// sellect the pin number of the port (12)
@@ -96,7 +98,8 @@ const GPIO_ConfigType GPIO_ConfigParam [GPIO_NUMBER_OF_GROUPS] =
         DEFAULT, //set the output speed to low speed 
         DEFAULT //set the pullup pulldown to no pulldown/pulldown
     },
-		{	
+	{	
+        //BLUE LED
     	//set portD as an output 
         PORT_GPIOD, // the choosen port
         PIN_MASK_15,// sellect the pin number of the port (12)
