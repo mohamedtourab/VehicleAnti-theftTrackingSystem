@@ -156,14 +156,14 @@ void BT_Manager(void)
 		{
 			ConnectionStatusRetVal = BT_GetConnectionStatus();
 			
-			if(GetDataRetVal == BT_OK)
+			if(ConnectionStatusRetVal == BT_OK)
             {
                 ManagerState = BT_IDLE;
                 GetConnectionStatusFlag = 0;
 				/*This indicates that the Bluetooth module is connected*/
 				(*(ConfigPtr->BT_ConnectionStatusCallBackPtr))((uint8_t)1);
             }
-			else if(GetDataRetVal == BT_NOK)
+			else if(ConnectionStatusRetVal == BT_NOK)
 			{
 				ManagerState = BT_IDLE;
                 GetConnectionStatusFlag = 0;

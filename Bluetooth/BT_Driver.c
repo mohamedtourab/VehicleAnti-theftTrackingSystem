@@ -4,7 +4,7 @@
  *        Date: 13/3/2018
  *  Last Edited: 18/3/2018
  *        Microcontroller: STM32F407VG
- *  Description: This File contains the Bluetooth Initialization and Configuration, and it needs around 700 ms to be finished
+ *  Description: This File contains the Bluetooth Initialization and Configuration
 */
 
 #include "BT_Driver.h"
