@@ -203,7 +203,6 @@ void GPS_ManagOnGoingOperation(void)
 			// if '1'
 			if (StartReceptionFlag == 1)
 			{
-				GPIO_Write(4, PIN_MASK_8, HIGH);
 				// UART start reception
 				UART_StartSilentReception(GPS_Data,768,(GPS_Ptr->UART_ChannelId));
 				// change the state to be GPS_WAIT
@@ -459,7 +458,6 @@ void GPS_ManagOnGoingOperation(void)
 */
 void GPS_ReceptionCallBack(void)
 {
-	GPIO_Write(4, PIN_MASK_8, LOW);
 	ReceptionDoneFlag = 1;
 }
 /*----------------------------------------------------------------------*/
