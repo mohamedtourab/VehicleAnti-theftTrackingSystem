@@ -1,6 +1,12 @@
 #include "NVM_Manager.h"
 
+#define NVM_ERROR_ID            1U
 
+#define NVM_CYCLIC_TIME			1000000U
+#define NVM_EXECUTION_TIME		1000U	
+
+static uint64_t NVM_TimeOut = NVM_CYCLIC_TIME/NVM_EXECUTION_TIME;
+static uint8_t LocationAddress = LOCATION_ADDRESS;
 static uint8_t  GlobalConfigStructure_ID = 0;
 static uint8_t* GlobalDataPointer = 0;
 static uint8_t  BusyFlag = 0;
@@ -29,7 +35,7 @@ NVM_CheckType NVM_Init(void)
     for(LoopIndex = 0; (LoopIndex < NO_OF_NVM_USED) && (Retval == NVM_OK); LoopIndex++)
     {
         ConfigPtr = &NVM_ConfigParam[LoopIndex];
-        if( ((ConfigPtr->NVM_LocationAddress) + (ConfigPtr->NVM_NoOfBytes)) < MEMORY_SIZE && (I2C_InitFlag == 1) )
+        if( ((LOCATION_ADDRESS) + (ConfigPtr->NVM_NoOfBytes)) < MEMORY_SIZE && (I2C_InitFlag == 1) )
         {
             Retval = NVM_OK;   
         }
@@ -96,9 +102,10 @@ NVM_CheckType NVM_Read(uint8_t ConfigStructure_ID, uint8_t* DataPointer)
 
 void NVM_Manager(void)
 {
+	static uint64_t ErrorCounter = 0;
     static uint8_t NVM_ReadOperationWriteFlag = 0;
-
     const NVM_ConfigType* ConfigPtr = &NVM_ConfigParam[GlobalConfigStructure_ID];
+	//const uint8_t LocationAddress = ConfigPtr->NVM_LocationAddress;
     static NVM_States ManagerState = NVM_UNINIT;
     switch(ManagerState)
     {
@@ -145,7 +152,7 @@ void NVM_Manager(void)
             this flag will be set so we will start the second part in the read sequence which starts from Repeated Start*/
             if(NVM_ReadOperationWriteFlag == 0)
             {
-                I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,ConfigPtr->NVM_LocationAddress,1);
+                I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,&LocationAddress,1);
             }
             else
             {
@@ -156,38 +163,63 @@ void NVM_Manager(void)
         break;
 
         case NVM_WAIT:
-        {
-            if( (I2C_WriteDone == 1) && (WriteRequest == 1) )
+        {   
+            if(ErrorCounter > NVM_TimeOut)
             {
-                ManagerState = NVM_IDLE;
-                BusyFlag = 0;
-                GlobalDataPointer = 0;
-                I2C_WriteDone = 0;
-                WriteRequest = 0;
-                I2C_GenerateStop(0);
-                (*(ConfigPtr->NVM_WriteDoneCallBackPtr))();
-            }
-            else if( (I2C_WriteDone == 1) && (ReadRequest == 1) )
-            {
-                I2C_WriteDone = 0;
-                ManagerState = NVM_READ;
-                NVM_ReadOperationWriteFlag = 1;
-            }
-            else if( (I2C_ReadDone == 1) && (ReadRequest == 1) )
-            {
-                ManagerState = NVM_IDLE;
-                BusyFlag = 0;
-                GlobalDataPointer = 0;
-                I2C_ReadDone = 0;
-                ReadRequest = 0;
-                NVM_ReadOperationWriteFlag = 0;
-                I2C_GenerateStop(0);
-                (*(ConfigPtr->NVM_ReadDoneCallBackPtr))();
+                ManagerState = NVM_ERROR;
             }
             else
             {
-                ManagerState = NVM_WAIT;
+                if( (I2C_WriteDone == 1) && (WriteRequest == 1) )
+                {
+                    ManagerState = NVM_IDLE;
+                    BusyFlag = 0;
+                    ErrorCounter = 0;
+                    GlobalDataPointer = 0;
+                    I2C_WriteDone = 0;
+                    WriteRequest = 0;
+                    I2C_GenerateStop(0);
+                    (*(ConfigPtr->NVM_WriteDoneCallBackPtr))();
+                }
+                else if( (I2C_WriteDone == 1) && (ReadRequest == 1) )
+                {
+                    I2C_WriteDone = 0;
+                    ManagerState = NVM_READ;
+                    NVM_ReadOperationWriteFlag = 1;
+                }
+                else if( (I2C_ReadDone == 1) && (ReadRequest == 1) )
+                {
+                    ErrorCounter = 0;
+                    ManagerState = NVM_IDLE;
+                    BusyFlag = 0;
+                    GlobalDataPointer = 0;
+                    I2C_ReadDone = 0;
+                    ReadRequest = 0;
+                    NVM_ReadOperationWriteFlag = 0;
+                    I2C_GenerateStop(0);
+                    (*(ConfigPtr->NVM_ReadDoneCallBackPtr))();
+                }
+                else
+                {
+                    ManagerState = NVM_WAIT;
+                }
             }
+            
+            ErrorCounter++;
+        }
+        break;
+		
+		case NVM_ERROR:
+        {
+            ErrorCounter = 0;
+            BusyFlag = 0;
+            WriteRequest = 0;
+            ReadRequest = 0;
+            I2C_ReadDone = 0;
+            I2C_WriteDone = 0;
+            NVM_ReadOperationWriteFlag = 0;
+            ManagerState = NVM_IDLE;
+            (*(ConfigPtr->NVM_ErrorCallBackPtr))(NVM_ERROR_ID);
         }
         break;
 
