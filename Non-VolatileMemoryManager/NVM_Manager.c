@@ -1,6 +1,6 @@
 #include "NVM_Manager.h"
 
-
+static uint8_t LocationAddress = LOCATION_ADDRESS;
 static uint8_t  GlobalConfigStructure_ID = 0;
 static uint8_t* GlobalDataPointer = 0;
 static uint8_t  BusyFlag = 0;
@@ -29,7 +29,7 @@ NVM_CheckType NVM_Init(void)
     for(LoopIndex = 0; (LoopIndex < NO_OF_NVM_USED) && (Retval == NVM_OK); LoopIndex++)
     {
         ConfigPtr = &NVM_ConfigParam[LoopIndex];
-        if( ((ConfigPtr->NVM_LocationAddress) + (ConfigPtr->NVM_NoOfBytes)) < MEMORY_SIZE && (I2C_InitFlag == 1) )
+        if( ((LOCATION_ADDRESS) + (ConfigPtr->NVM_NoOfBytes)) < MEMORY_SIZE && (I2C_InitFlag == 1) )
         {
             Retval = NVM_OK;   
         }
@@ -96,9 +96,10 @@ NVM_CheckType NVM_Read(uint8_t ConfigStructure_ID, uint8_t* DataPointer)
 
 void NVM_Manager(void)
 {
+	
     static uint8_t NVM_ReadOperationWriteFlag = 0;
-
     const NVM_ConfigType* ConfigPtr = &NVM_ConfigParam[GlobalConfigStructure_ID];
+	//const uint8_t LocationAddress = ConfigPtr->NVM_LocationAddress;
     static NVM_States ManagerState = NVM_UNINIT;
     switch(ManagerState)
     {
@@ -145,7 +146,7 @@ void NVM_Manager(void)
             this flag will be set so we will start the second part in the read sequence which starts from Repeated Start*/
             if(NVM_ReadOperationWriteFlag == 0)
             {
-                I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,ConfigPtr->NVM_LocationAddress,1);
+                I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,&LocationAddress,1);
             }
             else
             {

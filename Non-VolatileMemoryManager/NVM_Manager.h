@@ -5,8 +5,6 @@
 
 
 typedef void (*NVM_CallBackPointerType)(void);
-extern NVM_ConfigType NVM_ConfigParam [NO_OF_NVM_USED];
-extern uint8_t I2C_InitFlag ;
 
 void NVM_WriteDone(void);
 void NVM_ReadDone(void);
@@ -33,7 +31,7 @@ typedef struct
 {
     uint8_t NVM_SlaveAddress;
     uint8_t NVM_NoOfBytes;
-    uint8_t NVM_LocationAddress;
+    //uint8_t NVM_LocationAddress;
     NVM_CallBackPointerType NVM_WriteDoneCallBackPtr;
     NVM_CallBackPointerType NVM_ReadDoneCallBackPtr;
 
@@ -45,6 +43,9 @@ NVM_CheckType NVM_Init(void);
 NVM_CheckType NVM_Write(uint8_t ConfigStructure_ID, uint8_t* DataPointer);
 NVM_CheckType NVM_Read(uint8_t ConfigStruct, uint8_t* DataPointer);
 void NVM_Manager(void);
+
+extern NVM_ConfigType NVM_ConfigParam [NO_OF_NVM_USED];
+extern uint8_t I2C_InitFlag ;
 
 
 #endif
