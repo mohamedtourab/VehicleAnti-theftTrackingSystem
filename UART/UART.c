@@ -706,13 +706,13 @@ void USART3_IRQHandler (void)
 }
 
 // interrupt service routine of UART4 
-void USART4_IRQHandler (void)
+void UART4_IRQHandler (void)
 {
         IntManage(UART_4);
 }
 
 // interrupt service routine of UART5 
-void USART5_IRQHandler (void)
+void UART5_IRQHandler (void)
 {
         IntManage(UART_5);
 }
