@@ -2,6 +2,7 @@
 #include "delay.h"
 uint8_t NVM_WriteDoneFlag = 0;
 uint8_t NVM_ReadDoneFlag = 0;
+uint16_t s7s = 0;
 
 void NVM_WriteDone(void)
 {
@@ -13,11 +14,19 @@ void NVM_ReadDone(void)
 	NVM_ReadDoneFlag = 1;
 }
 
-void main(void)
+void NVM_Error(uint8_t ID)
+{
+	//GPIO_Write(4,1);
+	s7s = 1;
+}
+
+int main(void)
 {
 	uint8_t x=0;
 	uint8_t Data[4] = {0x30,0x44,0x55,0x66};
+	uint8_t Data1[4] = {0x30,0x44,0x55,0x66};
 	uint8_t RecData[3] = {0,0,0};
+	NVM_CheckType y = NVM_OK;
 	GPIO_Init();
 	I2C_Init();
 	NVM_Init();
@@ -31,7 +40,28 @@ void main(void)
 		{
 			case 0:
 			{
-				NVM_Write(0,Data);
+				y = NVM_Write(0,Data);
+				
+				if(y == NVM_NOT_BUSY)
+				{
+						x = 90;
+				}
+			}
+			break;
+			
+			case 90:
+			{
+				y = NVM_Write(1,Data1);
+				
+				if(y == NVM_BUSY)
+				{
+					GPIO_Write(4,1);
+				}
+				else
+				{
+					GPIO_Write(2,1);
+				}
+				
 				x = 1;
 			}
 			break;

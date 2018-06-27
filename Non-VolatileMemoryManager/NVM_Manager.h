@@ -5,9 +5,11 @@
 
 
 typedef void (*NVM_CallBackPointerType)(void);
+typedef void (*NVM_ErrorCallBackPointerType)(uint8_t);
 
 void NVM_WriteDone(void);
 void NVM_ReadDone(void);
+void NVM_Error(uint8_t);
 
 
 typedef enum
@@ -16,7 +18,8 @@ typedef enum
     NVM_IDLE,
     NVM_WRITE,
     NVM_READ,
-    NVM_WAIT
+    NVM_WAIT,
+	NVM_ERROR
 }NVM_States;
 
 typedef enum 
@@ -34,6 +37,7 @@ typedef struct
     //uint8_t NVM_LocationAddress;
     NVM_CallBackPointerType NVM_WriteDoneCallBackPtr;
     NVM_CallBackPointerType NVM_ReadDoneCallBackPtr;
+    NVM_ErrorCallBackPointerType NVM_ErrorCallBackPtr;
 
 }NVM_ConfigType;
 
