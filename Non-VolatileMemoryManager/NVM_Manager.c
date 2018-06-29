@@ -1,12 +1,9 @@
 #include "NVM_Manager.h"
 
-#define NVM_ERROR_ID            1U
+#define NVM_TIME_OUT 	(1000U)
 
-#define NVM_CYCLIC_TIME			1000000U
-#define NVM_EXECUTION_TIME		1000U	
+#define NVM_ERROR_ID 	(0U)
 
-static uint64_t NVM_TimeOut = NVM_CYCLIC_TIME/NVM_EXECUTION_TIME;
-static uint8_t LocationAddress = LOCATION_ADDRESS;
 static uint8_t  GlobalConfigStructure_ID = 0;
 static uint8_t* GlobalDataPointer = 0;
 static uint8_t  BusyFlag = 0;
@@ -15,6 +12,7 @@ static uint8_t  ReadRequest = 0;
 static uint8_t  NVM_InitFLag = 0;
 static uint8_t  I2C_WriteDone = 0;
 static uint8_t  I2C_ReadDone = 0;
+static uint64_t NVM_TimeOut = (NVM_TIME_OUT/NVM_CYCLIC_TIME);
 
 void I2C_TxDone(void)
 {
@@ -35,14 +33,13 @@ NVM_CheckType NVM_Init(void)
     for(LoopIndex = 0; (LoopIndex < NO_OF_NVM_USED) && (Retval == NVM_OK); LoopIndex++)
     {
         ConfigPtr = &NVM_ConfigParam[LoopIndex];
-        if( ((LOCATION_ADDRESS) + (ConfigPtr->NVM_NoOfBytes)) < MEMORY_SIZE && (I2C_InitFlag == 1) )
+        if( (((ConfigPtr->NVM_LocationAddress) + (ConfigPtr->NVM_NoOfBytes)) < MEMORY_SIZE) && (I2C_InitFlag == 1) )
         {
-            Retval = NVM_OK;   
+            Retval = NVM_OK;
         }
         else
         {
             Retval = NVM_NOK;
-            
         }
 
     }
@@ -62,6 +59,7 @@ NVM_CheckType NVM_Init(void)
 NVM_CheckType NVM_Write(uint8_t ConfigStructure_ID, uint8_t* DataPointer)
 {
     NVM_CheckType RetVal;
+	
     if(BusyFlag == 1)
     {
         RetVal = NVM_BUSY;
@@ -102,14 +100,14 @@ NVM_CheckType NVM_Read(uint8_t ConfigStructure_ID, uint8_t* DataPointer)
 
 void NVM_Manager(void)
 {
-	static uint64_t ErrorCounter = 0;
-    static uint8_t NVM_ReadOperationWriteFlag = 0;
     const NVM_ConfigType* ConfigPtr = &NVM_ConfigParam[GlobalConfigStructure_ID];
-	//const uint8_t LocationAddress = ConfigPtr->NVM_LocationAddress;
-    static NVM_States ManagerState = NVM_UNINIT;
+    const uint8_t* const LocationAddress = &(ConfigPtr->NVM_LocationAddress);
+    static uint8_t NVM_ReadOperationWriteFlag = 0;
+    static uint64_t ErrorCounter = 0;
+    static NVM_States ManagerState = NVM_UN_INIT;
     switch(ManagerState)
     {
-        case NVM_UNINIT:
+        case NVM_UN_INIT:
         {
             if(NVM_InitFLag == 1)
             {
@@ -117,7 +115,7 @@ void NVM_Manager(void)
             }
             else
             {
-                ManagerState = NVM_UNINIT;
+                ManagerState = NVM_UN_INIT;
             }
         }
         break;
@@ -141,7 +139,8 @@ void NVM_Manager(void)
 
         case NVM_WRITE:
         {
-            I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,GlobalDataPointer,ConfigPtr->NVM_NoOfBytes);
+            Concatenator(GlobalConfigStructure_ID, GlobalDataPointer);
+            I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,GlobalDataPointer,((ConfigPtr->NVM_NoOfBytes)+1));
             ManagerState = NVM_WAIT;
         }
         break;
@@ -152,7 +151,7 @@ void NVM_Manager(void)
             this flag will be set so we will start the second part in the read sequence which starts from Repeated Start*/
             if(NVM_ReadOperationWriteFlag == 0)
             {
-                I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,&LocationAddress,1);
+                I2C_RequestWrite(ConfigPtr->NVM_SlaveAddress,(uint8_t*)LocationAddress,1);
             }
             else
             {
@@ -163,8 +162,9 @@ void NVM_Manager(void)
         break;
 
         case NVM_WAIT:
-        {   
-            if(ErrorCounter > NVM_TimeOut)
+        {
+            ErrorCounter++;
+            if( ErrorCounter > NVM_TimeOut)
             {
                 ManagerState = NVM_ERROR;
             }
@@ -174,12 +174,12 @@ void NVM_Manager(void)
                 {
                     ManagerState = NVM_IDLE;
                     BusyFlag = 0;
-                    ErrorCounter = 0;
                     GlobalDataPointer = 0;
                     I2C_WriteDone = 0;
                     WriteRequest = 0;
+                    ErrorCounter = 0;
                     I2C_GenerateStop(0);
-                    (*(ConfigPtr->NVM_WriteDoneCallBackPtr))();
+                    (*(ConfigPtr->NVM_WriteDoneCallBackFunction))();
                 }
                 else if( (I2C_WriteDone == 1) && (ReadRequest == 1) )
                 {
@@ -189,42 +189,51 @@ void NVM_Manager(void)
                 }
                 else if( (I2C_ReadDone == 1) && (ReadRequest == 1) )
                 {
-                    ErrorCounter = 0;
                     ManagerState = NVM_IDLE;
                     BusyFlag = 0;
                     GlobalDataPointer = 0;
                     I2C_ReadDone = 0;
                     ReadRequest = 0;
                     NVM_ReadOperationWriteFlag = 0;
+                    ErrorCounter = 0;
                     I2C_GenerateStop(0);
-                    (*(ConfigPtr->NVM_ReadDoneCallBackPtr))();
+                    (*(ConfigPtr->NVM_ReadDoneCallBackFunction))();
                 }
                 else
                 {
                     ManagerState = NVM_WAIT;
                 }
             }
-            
-            ErrorCounter++;
         }
         break;
-		
-		case NVM_ERROR:
+
+        case NVM_ERROR:
         {
-            ErrorCounter = 0;
+            ManagerState = NVM_IDLE;
             BusyFlag = 0;
+            GlobalDataPointer = 0;
+            I2C_WriteDone = 0;
+            I2C_ReadDone = 0;
             WriteRequest = 0;
             ReadRequest = 0;
-            I2C_ReadDone = 0;
-            I2C_WriteDone = 0;
+            ErrorCounter = 0;
             NVM_ReadOperationWriteFlag = 0;
-            ManagerState = NVM_IDLE;
-            (*(ConfigPtr->NVM_ErrorCallBackPtr))(NVM_ERROR_ID);
+            I2C_GenerateStop(0);
+            (*(ConfigPtr->NVM_ErrorCallBackFunction))(NVM_ERROR_ID);
         }
         break;
-
     }
+}
 
 
+static void Concatenator(uint8_t GlobalConfigStructure_ID, uint8_t* OriginalArray)
+{
+    const NVM_ConfigType* ConfigPtr = &NVM_ConfigParam[GlobalConfigStructure_ID];
+    uint8_t Counter;
 
+    for(Counter = ((ConfigPtr->NVM_NoOfBytes)); Counter > 0 ; Counter--)
+    {
+        OriginalArray[Counter] = OriginalArray[Counter-1];
+    }
+    OriginalArray[0] = (ConfigPtr->NVM_LocationAddress);
 }
