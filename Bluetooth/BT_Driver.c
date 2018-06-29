@@ -32,12 +32,98 @@ void BT_Init(void)
     ReceptionDone     = 0;
     BT_InitFlag       = 0;
 
+    while(BT_Configure() != BT_OK)
+    {
+        UART_ManageOngoingOperation(ConfigPtr->BT_ChannelID);
+    }
+    while(BT_ChangeBaudRate() != BT_OK)
+    {
+        UART_ManageOngoingOperation(ConfigPtr->BT_ChannelID);
+    }
     if(sizeof(ConfigPtr->BT_Name) <= 25)
     {
         BT_InitFlag      = 1;
     }
 }
 
+
+/*
+ ******************************************************************************
+ *                                                                            *
+ *                                                                            *
+ *              Bluetooth Manager (BLuetooth Configuration)                   *
+ *                                                                            *
+ *                                                                            *
+ ******************************************************************************
+ */
+
+BT_CheckType BT_ChangeBaudRate(void)
+{
+    static BT_State State = SET_COMMAND_MODE;
+    const BT_ConfigType* ConfigPtr = &BT_ConfigParam;
+    uint8_t ReceivedArray[5] = {'\0','\0','\0','\0','\0'};
+    BT_Response MemoryCompareRetVal;
+    BT_CheckType RetVal = BT_BUSY;
+
+    switch(State)
+    {
+        case SET_COMMAND_MODE:
+        {
+            UART_StartSilentTransmission((uint8_t*)"$$$",3,ConfigPtr->BT_ChannelID);
+            State = CHECK_TRANSMISSION_DONE;
+        }
+        break;
+
+        case CHECK_TRANSMISSION_DONE:
+        {
+            if(TransmissionDone == 1)
+            {
+                TransmissionDone = 0;
+                State = CHECK_RECEPTION_DONE;
+                UART_StartSilentReception(ReceivedArray,3,ConfigPtr->BT_ChannelID);
+            }
+        }
+        break;
+
+        case CHECK_RECEPTION_DONE:
+        {
+            if(ReceptionDone == 1)
+            {
+                State = CHECK_RECEIVED_DATA;
+                ReceptionDone = 0;
+            }
+            else{/*MISRA*/};
+        }
+        break;
+
+        case CHECK_RECEIVED_DATA:
+        {
+            MemoryCompareRetVal = MemoryCompare(ReceivedArray,LENGTH_OF_BT_RESPONSE);
+
+            if(MemoryCompareRetVal == CMD)
+            {
+                RetVal = BT_BUSY;
+                State = CHANGE_BR;
+            }
+            else if(MemoryCompareRetVal == AOK)
+            {
+                RetVal = BT_OK;
+            }
+            else
+            {
+                RetVal = BT_NOK;
+            }
+        }
+        break;
+
+        case CHANGE_BR:
+        {
+            UART_StartSilentTransmission((uint8_t*)"U,9600,N",8,(ConfigPtr->BT_ChannelID));
+            State = CHECK_TRANSMISSION_DONE;
+        }
+        break;
+    }
+}
 
 /*
  ******************************************************************************
@@ -56,6 +142,7 @@ BT_CheckType BT_Configure(void)
     static unsigned char ReceivedArray[10] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
     uint8_t NumberOfCharacters;
     uint8_t OutputName[29];
+    BT_Response MemoryCompareRetVal;
     BT_CheckType RetVal = BT_NOK;
     const BT_ConfigType* ConfigPtr = &BT_ConfigParam;
 
@@ -71,27 +158,22 @@ BT_CheckType BT_Configure(void)
         break;
         case CHECK_TRANSMISSION_DONE:
         {
-            if(TransmissionDone)
+            if(TransmissionDone == 1)
             {
 
                 TransmissionDone = 0;
                 State = CHECK_RECEPTION_DONE;
                 UART_StartSilentReception(ReceivedArray,3,ConfigPtr->BT_ChannelID);
             }
-            else
-            {
-
-            }
-
+            else{/*MISRA*/};
         }
         break;
         case CHECK_RECEPTION_DONE:
         {
-            if(ReceptionDone)
+            if(ReceptionDone == 1)
             {
                 State = CHECK_RECEIVED_DATA;
                 ReceptionDone = 0;
-				
             }
             else{/*MISRA*/};
         }
@@ -99,7 +181,9 @@ BT_CheckType BT_Configure(void)
 
         case CHECK_RECEIVED_DATA:
         {
-            switch(MemoryCompare(ReceivedArray,LENGTH_OF_BT_RESPONSE))
+            MemoryCompareRetVal = MemoryCompare(ReceivedArray,LENGTH_OF_BT_RESPONSE);
+            
+            switch(MemoryCompareRetVal)
             {
                 case CMD:
                 {
@@ -169,15 +253,15 @@ BT_CheckType BT_Configure(void)
             State = CHECK_TRANSMISSION_DONE;
         }
         break;
-/*
+
         case DISABLE_REMOTE_CONFIGURATION:
         {
-            UART_StartSilentTransmission("ST,0\r",5,ConfigPtr->BT_ChannelID);
+            UART_StartSilentTransmission("ST,255\r",7,ConfigPtr->BT_ChannelID);
             OldState = State;
             State = CHECK_TRANSMISSION_DONE;
         }
         break;
-				*/
+				
         case EXIT_COMMAND_MODE:
         {
 
@@ -203,6 +287,8 @@ BT_CheckType BT_Configure(void)
             }
         }
         break;
+
+        default: break;
     }
     return RetVal;
 }

@@ -29,10 +29,11 @@ typedef enum
     SET_DEVICE_NAME ,
     SET_SLAVE_MODE ,
     SET_NO_AUTHENTICATION ,
-//    DISABLE_REMOTE_CONFIGURATION ,
+    DISABLE_REMOTE_CONFIGURATION ,
     EXIT_COMMAND_MODE,
     REBOOT ,
-    CHECK_RECEIVED_DATA 
+    CHECK_RECEIVED_DATA,
+    CHANGE_BR 
 }BT_State;
 
 typedef enum
@@ -85,7 +86,9 @@ typedef enum
     CHANNEL_ID_0 = 0,
     CHANNEL_ID_1 = 1,
     CHANNEL_ID_2 = 2,
-    CHANNEL_ID_3 = 3
+    CHANNEL_ID_3 = 3,
+    CHANNEL_ID_4 = 4,
+    CHANNEL_ID_5 = 5
 }BT_UART_ChannelID;
 
 typedef struct
@@ -105,10 +108,13 @@ BT_CheckType BT_GetData(uint8_t* DataReceived,uint8_t NoOfBytes);
 BT_CheckType BT_SendData(uint8_t* DataSent, uint8_t NoOfBytes);
 BT_CheckType BT_GetConnectionStatus(void);
 BT_CheckType BT_StopCommunication(void);
+BT_CheckType BT_ChangeBaudRate(void);
 
 static BT_Response MemoryCompare(unsigned char* AT_Command , uint8_t Length);
 BT_CheckType BT_Configure(void);
 static unsigned int Parser (const char InputName[],char OutputName[]);
 void BT_Init(void);
+void BluetoothTxDone(void);
+void BluetoothRxDone(void);
 
 #endif
