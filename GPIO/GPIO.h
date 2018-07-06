@@ -70,8 +70,8 @@
 /*************************************************************************************
 **********			Macros to access Output Type register					**********
 *************************************************************************************/
-#define	OTYPE_PUSHPULL		0U
-#define	OTYPE_OPENDRAIN		1U
+#define	OTYPE_PUSHPULL		0x00000000U
+#define	OTYPE_OPENDRAIN		0xFFFFFFFFU
 
 /*************************************************************************************
 **********			Macros to access Output speed register					**********
