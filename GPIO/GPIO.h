@@ -175,7 +175,7 @@ typedef struct
 		PushPull		0
 		Open Drain 		1	
 	*/
-	uint16_t OutputType;
+	uint32_t OutputType;
 
 	//set the output Speed
 	/*
